@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useUsers } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 import { Search, Edit, Trash2, User, Mail, Calendar, Plus, Shield } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 
 const Users: React.FC = () => {
-  const { state, deleteUser, searchUsers } = useUsers();
+  const { state, deleteUser, searchUsers, fetchUsers } = useUsers();
+  const { state: authState } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredUsers, setFilteredUsers] = useState(state.users);
   const [deleteModal, setDeleteModal] = useState<{
@@ -21,6 +23,12 @@ const Users: React.FC = () => {
   useEffect(() => {
     setFilteredUsers(state.users);
   }, [state.users]);
+
+  useEffect(() => {
+    if (authState.isAuthenticated && state.users.length === 0) {
+      fetchUsers();
+    }
+  }, [authState.isAuthenticated, fetchUsers, state.users.length]);
 
   useEffect(() => {
     const handleSearch = async () => {

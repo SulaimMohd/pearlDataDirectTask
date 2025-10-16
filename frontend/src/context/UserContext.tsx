@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer } from 'react';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8080/api';
@@ -177,9 +177,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: 'CLEAR_ERROR' });
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  // Remove automatic fetch - let components call fetchUsers when needed
 
   const value: UserContextType = {
     state,
