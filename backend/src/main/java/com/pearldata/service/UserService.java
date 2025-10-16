@@ -3,6 +3,7 @@ package com.pearldata.service;
 import com.pearldata.entity.User;
 import com.pearldata.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,9 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
     
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    
     public List<User> getAllUsers() {
         return userRepository.findAllOrderByCreatedAtDesc();
     }
@@ -28,10 +32,20 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
     
+    public Optional<User> getUserByEmailOrPhone(String email, String phoneNumber) {
+        return userRepository.findByEmailOrPhoneNumber(email, phoneNumber);
+    }
+    
     public User createUser(User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new RuntimeException("User with email " + user.getEmail() + " already exists");
         }
+        if (userRepository.existsByPhoneNumber(user.getPhoneNumber())) {
+            throw new RuntimeException("User with phone number " + user.getPhoneNumber() + " already exists");
+        }
+        
+        // Encrypt password
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
     
@@ -45,8 +59,22 @@ public class UserService {
             throw new RuntimeException("User with email " + userDetails.getEmail() + " already exists");
         }
         
+        // Check if phone number is being changed and if it already exists
+        if (!user.getPhoneNumber().equals(userDetails.getPhoneNumber()) && 
+            userRepository.existsByPhoneNumber(userDetails.getPhoneNumber())) {
+            throw new RuntimeException("User with phone number " + userDetails.getPhoneNumber() + " already exists");
+        }
+        
         user.setName(userDetails.getName());
         user.setEmail(userDetails.getEmail());
+        user.setRole(userDetails.getRole());
+        user.setPhoneNumber(userDetails.getPhoneNumber());
+        
+        // Only update password if provided
+        if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
+        }
+        
         user.setBio(userDetails.getBio());
         
         return userRepository.save(user);
@@ -64,5 +92,13 @@ public class UserService {
     
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+    
+    public boolean existsByPhoneNumber(String phoneNumber) {
+        return userRepository.existsByPhoneNumber(phoneNumber);
+    }
+    
+    public boolean validatePassword(String rawPassword, String encodedPassword) {
+        return passwordEncoder.matches(rawPassword, encodedPassword);
     }
 }

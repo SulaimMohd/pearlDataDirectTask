@@ -1,7 +1,5 @@
 server:
   port: 8080
-  servlet:
-    context-path: /api
 
 spring:
   application:
@@ -36,3 +34,7 @@ logging:
   level:
     com.pearldata: DEBUG
     org.springframework.web: DEBUG
+
+jwt:
+  secret: mySecretKeyForPearlDataApplication2024
+  expiration: 86400000

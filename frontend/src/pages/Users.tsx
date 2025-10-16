@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useUsers } from '../context/UserContext';
-import { Search, Edit, Trash2, User, Mail, Calendar, Plus } from 'lucide-react';
+import { Search, Edit, Trash2, User, Mail, Calendar, Plus, Shield } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 
 const Users: React.FC = () => {
@@ -74,6 +74,32 @@ const Users: React.FC = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'ADMIN':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'FACULTY':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'STUDENT':
+        return 'bg-green-100 text-green-800 border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'ADMIN':
+        return '👑';
+      case 'FACULTY':
+        return '👨‍🏫';
+      case 'STUDENT':
+        return '🎓';
+      default:
+        return '👤';
+    }
   };
 
   if (state.loading && state.users.length === 0) {
@@ -182,6 +208,13 @@ const Users: React.FC = () => {
                 <div className="flex items-center space-x-3 text-sm text-gray-600">
                   <Mail className="w-4 h-4" />
                   <span className="truncate">{user.email}</span>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Shield className="w-4 h-4 text-gray-500" />
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor(user.role)}`}>
+                    {getRoleIcon(user.role)} {user.role}
+                  </span>
                 </div>
                 
                 {user.bio && (

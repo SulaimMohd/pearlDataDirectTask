@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useUsers } from '../context/UserContext';
-import { ArrowLeft, Save, User, Mail, FileText } from 'lucide-react';
+import { ArrowLeft, Save, User, Mail, FileText, Shield, Phone } from 'lucide-react';
 
 const UserForm: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +11,8 @@ const UserForm: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    role: 'STUDENT' as 'ADMIN' | 'FACULTY' | 'STUDENT',
+    phoneNumber: '',
     bio: ''
   });
   
@@ -27,6 +29,8 @@ const UserForm: React.FC = () => {
             setFormData({
               name: user.name,
               email: user.email,
+              role: user.role,
+              phoneNumber: user.phoneNumber || '',
               bio: user.bio || ''
             });
           }
@@ -122,6 +126,45 @@ const UserForm: React.FC = () => {
               className="w-full px-4 py-3 glass-button rounded-xl focus:outline-none"
               placeholder="Enter email address"
             />
+          </div>
+
+          {/* Phone Number Field */}
+          <div className="space-y-2">
+            <label htmlFor="phoneNumber" className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+              <Phone className="w-4 h-4" />
+              <span>Phone Number *</span>
+            </label>
+            <input
+              type="tel"
+              id="phoneNumber"
+              name="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-3 glass-button rounded-xl focus:outline-none"
+              placeholder="+91XXXXXXXXXX"
+            />
+            <p className="text-xs text-gray-500">Enter Indian mobile number with +91</p>
+          </div>
+
+          {/* Role Field */}
+          <div className="space-y-2">
+            <label htmlFor="role" className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+              <Shield className="w-4 h-4" />
+              <span>Role *</span>
+            </label>
+            <select
+              id="role"
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-3 glass-button rounded-xl focus:outline-none"
+            >
+              <option value="STUDENT">Student</option>
+              <option value="FACULTY">Faculty</option>
+              <option value="ADMIN">Admin</option>
+            </select>
           </div>
 
           {/* Bio Field */}

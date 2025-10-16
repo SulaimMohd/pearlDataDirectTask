@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useUsers } from '../context/UserContext';
-import { ArrowLeft, Edit, Trash2, User, Mail, Calendar, FileText, Clock } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, User, Mail, Calendar, FileText, Clock, Shield } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 
 const UserDetail: React.FC = () => {
@@ -64,6 +64,32 @@ const UserDetail: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'ADMIN':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'FACULTY':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'STUDENT':
+        return 'bg-green-100 text-green-800 border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'ADMIN':
+        return '👑';
+      case 'FACULTY':
+        return '👨‍🏫';
+      case 'STUDENT':
+        return '🎓';
+      default:
+        return '👤';
+    }
   };
 
   if (loading) {
@@ -157,6 +183,13 @@ const UserDetail: React.FC = () => {
                 <span className="text-sm">{user.email}</span>
               </div>
               
+              <div className="flex items-center justify-center space-x-2">
+                <Shield className="w-4 h-4 text-gray-500" />
+                <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getRoleColor(user.role)}`}>
+                  {getRoleIcon(user.role)} {user.role}
+                </span>
+              </div>
+              
               <div className="flex items-center justify-center space-x-3 text-gray-500">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">Joined {formatDate(user.createdAt)}</span>
@@ -194,6 +227,16 @@ const UserDetail: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
                 <div className="p-4 glass-button rounded-xl bg-white/20">
                   <p className="text-gray-800 font-medium">{user.email}</p>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                <div className="p-4 glass-button rounded-xl bg-white/20">
+                  <span className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium border ${getRoleColor(user.role)}`}>
+                    <span>{getRoleIcon(user.role)}</span>
+                    <span>{user.role}</span>
+                  </span>
                 </div>
               </div>
               

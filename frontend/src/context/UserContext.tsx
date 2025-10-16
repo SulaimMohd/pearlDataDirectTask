@@ -7,9 +7,34 @@ export interface User {
   id?: number;
   name: string;
   email: string;
+  role: 'ADMIN' | 'FACULTY' | 'STUDENT';
+  phoneNumber?: string;
+  password?: string;
   bio?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'FACULTY' | 'STUDENT';
+  phoneNumber: string;
+  token: string;
+}
+
+export interface LoginRequest {
+  emailOrPhone: string;
+  password: string;
+}
+
+export interface SignupRequest {
+  name: string;
+  email: string;
+  password: string;
+  phoneNumber: string;
+  bio?: string;
 }
 
 interface UserState {
