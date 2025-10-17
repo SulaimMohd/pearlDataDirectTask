@@ -244,6 +244,12 @@ public class StudentService {
                 .map(StudentResponseDTO::new);
     }
 
+    // Get student entity by email
+    @Transactional(readOnly = true)
+    public Optional<Student> getStudentEntityByEmail(String email) {
+        return studentRepository.findByEmail(email);
+    }
+
     // Get student by student ID
     @Transactional(readOnly = true)
     public Optional<StudentResponseDTO> getStudentByStudentId(String studentId) {

@@ -59,6 +59,18 @@ export interface Event {
   updatedAt?: string;
 }
 
+export interface GroupedEvents {
+  ongoing: Event[];
+  scheduled: Event[];
+  completed: Event[];
+}
+
+export interface EventsSummary {
+  ongoingCount: number;
+  scheduledCount: number;
+  completedCount: number;
+}
+
 export interface ProgressData {
   overallAttendance: number;
   totalEvents: number;
@@ -74,12 +86,19 @@ export interface ProgressData {
 }
 
 export interface Notification {
-  id: string;
+  id: number;
+  studentId: number;
+  fromUserId: number;
+  fromUserName: string;
+  fromUserRole: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  timestamp: string;
+  type: string;
   isRead: boolean;
+  relatedEntityId?: number;
+  relatedEntityType?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LibraryBook {
@@ -97,8 +116,11 @@ interface StudentState {
   dashboardStats: DashboardStats | null;
   attendance: AttendanceRecord[];
   events: Event[];
+  groupedEvents: GroupedEvents | null;
+  eventsSummary: EventsSummary | null;
   progress: ProgressData | null;
   notifications: Notification[];
+  unreadNotificationCount: number;
   libraryBooks: LibraryBook[];
   loading: boolean;
   error: string | null;
@@ -112,10 +134,14 @@ type StudentAction =
   | { type: 'SET_DASHBOARD_STATS'; payload: DashboardStats }
   | { type: 'SET_ATTENDANCE'; payload: AttendanceRecord[] }
   | { type: 'SET_EVENTS'; payload: Event[] }
+  | { type: 'SET_GROUPED_EVENTS'; payload: GroupedEvents }
+  | { type: 'SET_EVENTS_SUMMARY'; payload: EventsSummary }
   | { type: 'SET_PROGRESS'; payload: ProgressData }
   | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
+  | { type: 'SET_UNREAD_NOTIFICATION_COUNT'; payload: number }
   | { type: 'SET_LIBRARY_BOOKS'; payload: LibraryBook[] }
-  | { type: 'MARK_NOTIFICATION_READ'; payload: string }
+  | { type: 'MARK_NOTIFICATION_READ'; payload: number }
+  | { type: 'DELETE_NOTIFICATION'; payload: number }
   | { type: 'UPDATE_PROFILE'; payload: StudentProfile };
 
 const initialState: StudentState = {
@@ -123,33 +149,11 @@ const initialState: StudentState = {
   dashboardStats: null,
   attendance: [],
   events: [],
+  groupedEvents: null,
+  eventsSummary: null,
   progress: null,
-  notifications: [
-    {
-      id: '1',
-      title: 'Assignment Due',
-      message: 'Your Mathematics assignment is due tomorrow.',
-      type: 'warning',
-      timestamp: '2025-10-17T10:00:00Z',
-      isRead: false
-    },
-    {
-      id: '2',
-      title: 'Library Book Overdue',
-      message: 'Your book "Introduction to Algorithms" is overdue.',
-      type: 'error',
-      timestamp: '2025-10-16T15:30:00Z',
-      isRead: false
-    },
-    {
-      id: '3',
-      title: 'New Event Scheduled',
-      message: 'A new workshop on "Machine Learning" has been scheduled.',
-      type: 'info',
-      timestamp: '2025-10-16T09:15:00Z',
-      isRead: true
-    }
-  ],
+  notifications: [],
+  unreadNotificationCount: 0,
   libraryBooks: [
     {
       id: '1',
@@ -199,12 +203,18 @@ const studentReducer = (state: StudentState, action: StudentAction): StudentStat
       return { ...state, attendance: action.payload, loading: false };
     case 'SET_EVENTS':
       return { ...state, events: action.payload, loading: false };
+    case 'SET_GROUPED_EVENTS':
+      return { ...state, groupedEvents: action.payload, loading: false };
+    case 'SET_EVENTS_SUMMARY':
+      return { ...state, eventsSummary: action.payload, loading: false };
     case 'SET_PROGRESS':
       return { ...state, progress: action.payload, loading: false };
     case 'SET_NOTIFICATIONS':
       return { ...state, notifications: action.payload, loading: false };
     case 'SET_LIBRARY_BOOKS':
       return { ...state, libraryBooks: action.payload, loading: false };
+    case 'SET_UNREAD_NOTIFICATION_COUNT':
+      return { ...state, unreadNotificationCount: action.payload };
     case 'MARK_NOTIFICATION_READ':
       return {
         ...state,
@@ -212,7 +222,16 @@ const studentReducer = (state: StudentState, action: StudentAction): StudentStat
           notification.id === action.payload
             ? { ...notification, isRead: true }
             : notification
-        )
+        ),
+        unreadNotificationCount: Math.max(0, state.unreadNotificationCount - 1)
+      };
+    case 'DELETE_NOTIFICATION':
+      return {
+        ...state,
+        notifications: state.notifications.filter(notification => notification.id !== action.payload),
+        unreadNotificationCount: state.notifications.find(n => n.id === action.payload && !n.isRead) 
+          ? Math.max(0, state.unreadNotificationCount - 1) 
+          : state.unreadNotificationCount
       };
     case 'UPDATE_PROFILE':
       return { ...state, profile: action.payload, loading: false };
@@ -226,10 +245,13 @@ interface StudentContextType {
   fetchProfile: () => Promise<void>;
   fetchDashboardStats: () => Promise<void>;
   fetchAttendance: (page?: number, size?: number) => Promise<void>;
-  fetchEvents: (page?: number, size?: number) => Promise<void>;
+  fetchEvents: () => Promise<void>;
   fetchProgress: () => Promise<void>;
+  fetchNotifications: () => Promise<void>;
+  fetchRecentNotifications: () => Promise<void>;
+  markNotificationAsRead: (notificationId: number) => Promise<void>;
+  deleteNotification: (notificationId: number) => Promise<void>;
   updateProfile: (profileData: Partial<StudentProfile>) => Promise<void>;
-  markNotificationAsRead: (notificationId: string) => void;
   clearError: () => void;
 }
 
@@ -283,12 +305,31 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [getAuthHeaders]);
 
-  const fetchEvents = useCallback(async (page = 0, size = 10) => {
+  const fetchEvents = useCallback(async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'CLEAR_ERROR' });
     try {
-      const response = await axios.get(`${API_BASE_URL}/student/events?page=${page}&size=${size}`, getAuthHeaders());
-      dispatch({ type: 'SET_EVENTS', payload: response.data.data || [] });
+      const response = await axios.get(`${API_BASE_URL}/student/events`, getAuthHeaders());
+      console.log('Events API Response:', response.data);
+      
+      // Backend now returns grouped data directly
+      const groupedEvents: GroupedEvents = response.data.data || { ongoing: [], scheduled: [], completed: [] };
+      const eventsSummary: EventsSummary = response.data.summary || { 
+        ongoingCount: 0, 
+        scheduledCount: 0, 
+        completedCount: 0 
+      };
+      
+      // Flatten all events for the events array
+      const allEvents = [
+        ...groupedEvents.ongoing,
+        ...groupedEvents.scheduled,
+        ...groupedEvents.completed
+      ];
+      
+      dispatch({ type: 'SET_GROUPED_EVENTS', payload: groupedEvents });
+      dispatch({ type: 'SET_EVENTS_SUMMARY', payload: eventsSummary });
+      dispatch({ type: 'SET_EVENTS', payload: allEvents });
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Failed to fetch events' });
     }
@@ -317,9 +358,55 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [getAuthHeaders]);
 
-  const markNotificationAsRead = useCallback((notificationId: string) => {
-    dispatch({ type: 'MARK_NOTIFICATION_READ', payload: notificationId });
-  }, []);
+  const fetchNotifications = useCallback(async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'CLEAR_ERROR' });
+    try {
+      const response = await axios.get(`${API_BASE_URL}/student/notifications`, getAuthHeaders());
+      console.log('Notifications API Response:', response.data);
+      
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: response.data.data || [] });
+      dispatch({ type: 'SET_UNREAD_NOTIFICATION_COUNT', payload: response.data.unreadCount || 0 });
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Failed to fetch notifications' });
+    }
+  }, [getAuthHeaders]);
+
+  const fetchRecentNotifications = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/student/notifications/recent`, getAuthHeaders());
+      console.log('Recent Notifications API Response:', response.data);
+      
+      // Only update if we don't have notifications loaded yet
+      if (state.notifications.length === 0) {
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: response.data.data || [] });
+      }
+      dispatch({ type: 'SET_UNREAD_NOTIFICATION_COUNT', payload: response.data.unreadCount || 0 });
+    } catch (error: any) {
+      console.error('Error fetching recent notifications:', error);
+      // Don't set error for dashboard notifications to avoid disrupting the dashboard
+    }
+  }, [getAuthHeaders, state.notifications.length]);
+
+  const markNotificationAsRead = useCallback(async (notificationId: number) => {
+    try {
+      await axios.put(`${API_BASE_URL}/student/notifications/${notificationId}/read`, {}, getAuthHeaders());
+      dispatch({ type: 'MARK_NOTIFICATION_READ', payload: notificationId });
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Failed to mark notification as read' });
+      throw error;
+    }
+  }, [getAuthHeaders]);
+
+  const deleteNotification = useCallback(async (notificationId: number) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/student/notifications/${notificationId}`, getAuthHeaders());
+      dispatch({ type: 'DELETE_NOTIFICATION', payload: notificationId });
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Failed to delete notification' });
+      throw error;
+    }
+  }, [getAuthHeaders]);
 
   const clearError = useCallback(() => {
     dispatch({ type: 'CLEAR_ERROR' });
@@ -332,8 +419,11 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     fetchAttendance,
     fetchEvents,
     fetchProgress,
-    updateProfile,
+    fetchNotifications,
+    fetchRecentNotifications,
     markNotificationAsRead,
+    deleteNotification,
+    updateProfile,
     clearError,
   };
 

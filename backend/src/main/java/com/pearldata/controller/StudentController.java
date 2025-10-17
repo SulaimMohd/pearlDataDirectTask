@@ -1,9 +1,11 @@
 package com.pearldata.controller;
 
+import com.pearldata.dto.EventResponseDTO;
 import com.pearldata.entity.Attendance;
 import com.pearldata.entity.Event;
 import com.pearldata.entity.Student;
 import com.pearldata.entity.User;
+import com.pearldata.repository.EventRepository;
 import com.pearldata.service.AttendanceService;
 import com.pearldata.service.EventService;
 import com.pearldata.service.StudentService;
@@ -18,10 +20,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/student")
@@ -39,13 +43,15 @@ public class StudentController {
     private EventService eventService;
 
     @Autowired
+    private EventRepository eventRepository;
+
+    @Autowired
     private AttendanceService attendanceService;
 
     // Helper method to get current student
     private Student getCurrentStudent(Authentication authentication) {
         String email = authentication.getName();
-        return studentService.getStudentByEmail(email)
-                .map(dto -> studentService.getStudentEntityById(dto.getId()))
+        return studentService.getStudentEntityByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
     }
 
@@ -206,8 +212,60 @@ public class StudentController {
         }
     }
 
-    // Get upcoming events
+    // Get all events grouped by status (upcoming, today, completed)
     @GetMapping("/events")
+    public ResponseEntity<?> getAllEventsGrouped(Authentication authentication) {
+        try {
+            Student student = getCurrentStudent(authentication);
+            
+            // Get all events using the EventService (same as admin)
+            List<EventResponseDTO> allEvents = eventService.getAllEvents();
+            
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime startOfToday = now.toLocalDate().atStartOfDay();
+            LocalDateTime endOfToday = now.toLocalDate().atTime(23, 59, 59);
+            
+            // Group events by status: Ongoing, Scheduled, Completed
+            List<EventResponseDTO> ongoingEvents = allEvents.stream()
+                .filter(event -> event.getStatus() == Event.EventStatus.ONGOING)
+                .sorted((a, b) -> a.getStartTime().compareTo(b.getStartTime()))
+                .collect(Collectors.toList());
+            
+            List<EventResponseDTO> scheduledEvents = allEvents.stream()
+                .filter(event -> event.getStatus() == Event.EventStatus.SCHEDULED)
+                .sorted((a, b) -> a.getStartTime().compareTo(b.getStartTime()))
+                .collect(Collectors.toList());
+            
+            List<EventResponseDTO> completedEvents = allEvents.stream()
+                .filter(event -> event.getStatus() == Event.EventStatus.COMPLETED)
+                .sorted((a, b) -> b.getStartTime().compareTo(a.getStartTime())) // Most recent first
+                .collect(Collectors.toList());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", Map.of(
+                "ongoing", ongoingEvents,
+                "scheduled", scheduledEvents,
+                "completed", completedEvents
+            ));
+            response.put("summary", Map.of(
+                "ongoingCount", ongoingEvents.size(),
+                "scheduledCount", scheduledEvents.size(),
+                "completedCount", completedEvents.size()
+            ));
+            response.put("studentName", student.getName());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "Error fetching events: " + e.getMessage()
+            ));
+        }
+    }
+
+    // Get upcoming events (legacy endpoint)
+    @GetMapping("/events/upcoming")
     public ResponseEntity<?> getUpcomingEvents(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

@@ -139,16 +139,16 @@ const Login: React.FC = () => {
               )}
             </button>
 
-            {/* Sign Up Link */}
+            {/* Admin Contact Info */}
             <div className="text-center">
               <p className="text-gray-600">
                 Don't have an account?{' '}
-                <Link
-                  to="/signup"
-                  className="text-primary-600 hover:text-primary-700 font-semibold transition-colors duration-300"
-                >
-                  Sign up here
-                </Link>
+                <span className="text-primary-600 font-semibold">
+                  Contact your administrator
+                </span>
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                User accounts are created by administrators only
               </p>
             </div>
           </form>

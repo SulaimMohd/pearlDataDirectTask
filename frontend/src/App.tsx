@@ -15,7 +15,6 @@ import FacultyRoute from './components/FacultyRoute';
 import StudentRoute from './components/StudentRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import Signup from './pages/Signup';
 import Users from './pages/Users';
 import UserForm from './pages/UserForm';
 import UserDetail from './pages/UserDetail';
@@ -48,11 +47,6 @@ function App() {
             <Route path="/login" element={
               <Layout showNavbar={false}>
                 <Login />
-              </Layout>
-            } />
-            <Route path="/signup" element={
-              <Layout showNavbar={false}>
-                <Signup />
               </Layout>
             } />
             <Route path="/unauthorized" element={

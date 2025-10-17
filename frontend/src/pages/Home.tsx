@@ -20,8 +20,8 @@ const Home: React.FC = () => {
   const features = [
     {
       icon: <Users className="w-8 h-8" />,
-      title: 'User Management',
-      description: 'Create, read, update, and delete users with a beautiful interface.',
+      title: 'Admin User Management',
+      description: 'Administrators can create, read, update, and delete users with a beautiful interface.',
       color: 'from-primary-500 to-primary-600'
     },
     {
@@ -55,6 +55,10 @@ const Home: React.FC = () => {
           <p className="text-xl text-gray-600 mb-8 leading-relaxed">
             A modern full-stack application built with React, Spring Boot, and PostgreSQL. 
             Experience the power of glass-morphism design with secure user management.
+            <br />
+            <span className="text-sm text-gray-500 mt-2 block">
+              User accounts are created by administrators only. Contact your admin for access.
+            </span>
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {state.isAuthenticated ? (
@@ -75,22 +79,13 @@ const Home: React.FC = () => {
                 </Link>
               </>
             ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="inline-flex items-center space-x-2 px-8 py-4 glass-button text-lg font-semibold hover:shadow-2xl transition-all duration-300"
-                >
-                  <LogIn className="w-5 h-5" />
-                  <span>Login</span>
-                </Link>
-                <Link
-                  to="/signup"
-                  className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300"
-                >
-                  <UserPlus className="w-5 h-5" />
-                  <span>Sign Up</span>
-                </Link>
-              </>
+              <Link
+                to="/login"
+                className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300"
+              >
+                <LogIn className="w-5 h-5" />
+                <span>Login to Access</span>
+              </Link>
             )}
           </div>
         </div>
