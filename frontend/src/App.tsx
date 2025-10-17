@@ -2,6 +2,9 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { UserProvider } from './context/UserContext';
 import { AuthProvider } from './context/AuthContext';
+import { FacultyProvider } from './context/FacultyContext';
+import { AdminProvider } from './context/AdminContext';
+import { ToastProvider } from './context/ToastContext';
 import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout';
 import FacultyLayout from './components/FacultyLayout';
@@ -22,11 +25,15 @@ import FacultyDashboard from './pages/faculty/FacultyDashboard';
 import FacultyStudents from './pages/faculty/FacultyStudents';
 import FacultyEvents from './pages/faculty/FacultyEvents';
 import FacultyAttendance from './pages/faculty/FacultyAttendance';
+import FacultyAnalytics from './pages/faculty/FacultyAnalytics';
 
 function App() {
   return (
     <AuthProvider>
-      <UserProvider>
+      <ToastProvider>
+        <UserProvider>
+          <FacultyProvider>
+            <AdminProvider>
         <Router>
           <Routes>
             {/* Public Routes - No Navbar */}
@@ -149,9 +156,19 @@ function App() {
                 </FacultyRoute>
               </FacultyLayout>
             } />
+            <Route path="/faculty/analytics" element={
+              <FacultyLayout>
+                <FacultyRoute>
+                  <FacultyAnalytics />
+                </FacultyRoute>
+              </FacultyLayout>
+            } />
           </Routes>
         </Router>
-      </UserProvider>
+            </AdminProvider>
+          </FacultyProvider>
+        </UserProvider>
+      </ToastProvider>
     </AuthProvider>
   );
 }

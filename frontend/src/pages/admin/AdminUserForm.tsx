@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, User, Mail, FileText, Phone, Lock } from 'lucide-react';
-import axios from 'axios';
+import { ArrowLeft, Save, User, Mail, FileText, Phone, Lock, Calendar } from 'lucide-react';
+import { useAdmin } from '../../context/AdminContext';
+import { useToast } from '../../context/ToastContext';
 
 interface AdminUserFormProps {
   userType: 'STUDENT' | 'FACULTY' | 'ADMIN';
@@ -9,12 +10,20 @@ interface AdminUserFormProps {
 
 const AdminUserForm: React.FC<AdminUserFormProps> = ({ userType }) => {
   const navigate = useNavigate();
+  const { createUserWithRole, state } = useAdmin();
+  const { showSuccess, showError } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     phoneNumber: '',
-    bio: ''
+    bio: '',
+    // Student-specific fields
+    studentId: '',
+    department: '',
+    course: '',
+    academicYear: '',
+    semester: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -48,13 +57,61 @@ const AdminUserForm: React.FC<AdminUserFormProps> = ({ userType }) => {
       setLoading(false);
       return;
     }
+    
+    // Student-specific validation
+    if (userType === 'STUDENT') {
+      if (!formData.studentId) {
+        setError('Student ID is required.');
+        setLoading(false);
+        return;
+      }
+      if (!formData.department) {
+        setError('Department is required.');
+        setLoading(false);
+        return;
+      }
+      if (!formData.course) {
+        setError('Course is required.');
+        setLoading(false);
+        return;
+      }
+      if (!formData.academicYear) {
+        setError('Academic Year is required.');
+        setLoading(false);
+        return;
+      }
+      if (!formData.semester) {
+        setError('Semester is required.');
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
-      const endpoint = `/api/admin/users/${userType.toLowerCase()}`;
-      await axios.post(endpoint, formData);
-      navigate('/admin/dashboard');
+      await createUserWithRole(formData, userType);
+      
+      // Show success notification
+      const roleText = userType === 'STUDENT' ? 'Student' : userType === 'FACULTY' ? 'Faculty' : 'Admin';
+      showSuccess(
+        `${roleText} Created Successfully! 🎉`,
+        `${formData.name} has been added to the system`,
+        5000
+      );
+      
+      // Navigate after a short delay to show the notification
+      setTimeout(() => {
+        navigate('/admin/dashboard');
+      }, 1500);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to create user');
+      const errorMessage = err.response?.data?.error || state.error || 'Failed to create user';
+      setError(errorMessage);
+      
+      // Show error notification
+      showError(
+        'User Creation Failed',
+        errorMessage,
+        6000
+      );
     } finally {
       setLoading(false);
     }
@@ -202,6 +259,113 @@ const AdminUserForm: React.FC<AdminUserFormProps> = ({ userType }) => {
                 placeholder="Tell us a little about the user..."
               ></textarea>
             </div>
+
+            {/* Student-specific fields */}
+            {userType === 'STUDENT' && (
+              <>
+                {/* Student ID Field */}
+                <div className="space-y-2">
+                  <label htmlFor="studentId" className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                    <User className="w-4 h-4" />
+                    <span>Student ID *</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="studentId"
+                    name="studentId"
+                    value={formData.studentId}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 glass-button rounded-xl focus:outline-none"
+                    placeholder="Enter student ID (e.g., 2023001)"
+                    required
+                  />
+                </div>
+
+                {/* Department Field */}
+                <div className="space-y-2">
+                  <label htmlFor="department" className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                    <FileText className="w-4 h-4" />
+                    <span>Department *</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="department"
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 glass-button rounded-xl focus:outline-none"
+                    placeholder="Enter department (e.g., Computer Science)"
+                    required
+                  />
+                </div>
+
+                {/* Course Field */}
+                <div className="space-y-2">
+                  <label htmlFor="course" className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                    <FileText className="w-4 h-4" />
+                    <span>Course *</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="course"
+                    name="course"
+                    value={formData.course}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 glass-button rounded-xl focus:outline-none"
+                    placeholder="Enter course (e.g., B.Tech, M.Tech)"
+                    required
+                  />
+                </div>
+
+                {/* Academic Year Field */}
+                <div className="space-y-2">
+                  <label htmlFor="academicYear" className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                    <Calendar className="w-4 h-4" />
+                    <span>Academic Year *</span>
+                  </label>
+                  <select
+                    id="academicYear"
+                    name="academicYear"
+                    value={formData.academicYear}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 glass-button rounded-xl focus:outline-none"
+                    required
+                  >
+                    <option value="">Select Academic Year</option>
+                    <option value="2024-25">2024-25</option>
+                    <option value="2023-24">2023-24</option>
+                    <option value="2022-23">2022-23</option>
+                    <option value="2021-22">2021-22</option>
+                  </select>
+                </div>
+
+                {/* Semester Field */}
+                <div className="space-y-2">
+                  <label htmlFor="semester" className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                    <Calendar className="w-4 h-4" />
+                    <span>Semester *</span>
+                  </label>
+                  <select
+                    id="semester"
+                    name="semester"
+                    value={formData.semester}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 glass-button rounded-xl focus:outline-none"
+                    required
+                  >
+                    <option value="">Select Semester</option>
+                    <option value="1">1st Semester</option>
+                    <option value="2">2nd Semester</option>
+                    <option value="3">3rd Semester</option>
+                    <option value="4">4th Semester</option>
+                    <option value="5">5th Semester</option>
+                    <option value="6">6th Semester</option>
+                    <option value="7">7th Semester</option>
+                    <option value="8">8th Semester</option>
+                  </select>
+                </div>
+              </>
+            )}
 
             <button
               type="submit"

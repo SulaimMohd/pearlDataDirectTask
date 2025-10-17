@@ -3,6 +3,8 @@ package com.pearldata.service;
 import com.pearldata.entity.User;
 import com.pearldata.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,13 @@ public class UserService {
     
     public List<User> getAllUsers() {
         return userRepository.findAllOrderByCreatedAtDesc();
+    }
+    
+    public Page<User> getAllUsers(String searchTerm, Pageable pageable) {
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            return userRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(searchTerm, searchTerm, pageable);
+        }
+        return userRepository.findAll(pageable);
     }
     
     public Optional<User> getUserById(Long id) {
@@ -100,5 +109,31 @@ public class UserService {
     
     public boolean validatePassword(String rawPassword, String encodedPassword) {
         return passwordEncoder.matches(rawPassword, encodedPassword);
+    }
+    
+    public User saveUser(User user) {
+        return userRepository.save(user);
+    }
+    
+    public void activateUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        user.setIsActive(true);
+        userRepository.save(user);
+    }
+    
+    public void deactivateUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        user.setIsActive(false);
+        userRepository.save(user);
+    }
+    
+    public long getTotalUsersCount() {
+        return userRepository.count();
+    }
+    
+    public long getUsersCountByRole(User.Role role) {
+        return userRepository.countByRole(role);
     }
 }

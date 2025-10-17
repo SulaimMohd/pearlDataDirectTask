@@ -1,6 +1,8 @@
 package com.pearldata.repository;
 
 import com.pearldata.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -26,4 +28,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     @Query("SELECT u FROM User u ORDER BY u.createdAt DESC")
     List<User> findAllOrderByCreatedAtDesc();
+    
+    @Query("SELECT u FROM User u WHERE u.name LIKE %:name% OR u.email LIKE %:email%")
+    Page<User> findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(@Param("name") String name, @Param("email") String email, Pageable pageable);
+    
+    long countByRole(User.Role role);
 }

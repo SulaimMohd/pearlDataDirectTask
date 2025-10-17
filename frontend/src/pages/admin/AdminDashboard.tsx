@@ -1,36 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { useUsers } from '../../context/UserContext';
+import { useAdmin } from '../../context/AdminContext';
 import { Users, GraduationCap, UserCheck, Shield } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
-  const { state, fetchUsers } = useUsers();
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    students: 0,
-    faculty: 0,
-    admins: 0
-  });
+  const { state, fetchUsers, fetchDashboardStats } = useAdmin();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (state.users.length === 0) {
-      fetchUsers();
-    }
-  }, [fetchUsers, state.users.length]);
-
-  useEffect(() => {
-    const newStats = {
-      totalUsers: state.users.length,
-      students: state.users.filter(user => user.role === 'STUDENT').length,
-      faculty: state.users.filter(user => user.role === 'FACULTY').length,
-      admins: state.users.filter(user => user.role === 'ADMIN').length
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // Always fetch users for the recent users section
+        if (state.users.length === 0) {
+          await fetchUsers();
+        }
+        
+        // Fetch dashboard stats if not already loaded
+        if (!state.dashboardStats) {
+          await fetchDashboardStats();
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
-    setStats(newStats);
-  }, [state.users]);
+
+    loadData();
+  }, [fetchUsers, fetchDashboardStats, state.users.length, state.dashboardStats]);
 
   const statCards = [
     {
       title: 'Total Users',
-      value: stats.totalUsers,
+      value: state.dashboardStats?.totalUsers || 0,
       icon: <Users className="w-8 h-8" />,
       color: 'from-cyan-500 to-blue-600',
       bgColor: 'bg-gradient-to-br from-cyan-50 to-blue-50',
@@ -39,7 +41,7 @@ const AdminDashboard: React.FC = () => {
     },
     {
       title: 'Students',
-      value: stats.students,
+      value: state.dashboardStats?.totalStudents || 0,
       icon: <GraduationCap className="w-8 h-8" />,
       color: 'from-emerald-500 to-green-600',
       bgColor: 'bg-gradient-to-br from-emerald-50 to-green-50',
@@ -48,7 +50,7 @@ const AdminDashboard: React.FC = () => {
     },
     {
       title: 'Faculty',
-      value: stats.faculty,
+      value: state.dashboardStats?.totalFaculty || 0,
       icon: <UserCheck className="w-8 h-8" />,
       color: 'from-violet-500 to-purple-600',
       bgColor: 'bg-gradient-to-br from-violet-50 to-purple-50',
@@ -57,7 +59,7 @@ const AdminDashboard: React.FC = () => {
     },
     {
       title: 'Admins',
-      value: stats.admins,
+      value: state.dashboardStats?.totalAdmins || 0,
       icon: <Shield className="w-8 h-8" />,
       color: 'from-rose-500 to-red-600',
       bgColor: 'bg-gradient-to-br from-rose-50 to-red-50',
@@ -66,7 +68,14 @@ const AdminDashboard: React.FC = () => {
     }
   ];
 
-  const recentUsers = state.users.slice(0, 5);
+  // Get the 5 most recently created users
+  const recentUsers = state.users
+    .sort((a, b) => {
+      const dateA = new Date(a.createdAt || '').getTime();
+      const dateB = new Date(b.createdAt || '').getTime();
+      return dateB - dateA; // Sort in descending order (newest first)
+    })
+    .slice(0, 5);
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -94,7 +103,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  if (state.loading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="glass-card p-8 text-center">

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useUsers } from '../../context/UserContext';
+import { useAdmin } from '../../context/AdminContext';
 import { Search, Edit, Trash2, Mail, Calendar, Shield } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
+import { useToast } from '../../context/ToastContext';
 
 const AdminUserSearch: React.FC = () => {
-  const { state, deleteUser, searchUsers } = useUsers();
+  const { state, deleteUser, searchUsers, fetchUsers } = useAdmin();
+  const { showSuccess, showError } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(state.users);
   const [deleteModal, setDeleteModal] = useState<{
@@ -16,6 +18,13 @@ const AdminUserSearch: React.FC = () => {
     userId: null,
     userName: ''
   });
+
+  // Fetch users on component mount
+  useEffect(() => {
+    if (state.users.length === 0) {
+      fetchUsers();
+    }
+  }, [fetchUsers, state.users.length]);
 
   useEffect(() => {
     setSearchResults(state.users);
@@ -52,13 +61,28 @@ const AdminUserSearch: React.FC = () => {
     if (deleteModal.userId) {
       try {
         await deleteUser(deleteModal.userId);
+        
+        // Show success notification
+        showSuccess(
+          'User Deleted Successfully! 🗑️',
+          `${deleteModal.userName} has been removed from the system`,
+          4000
+        );
+        
         setDeleteModal({
           isOpen: false,
           userId: null,
           userName: ''
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to delete user:', error);
+        
+        // Show error notification
+        showError(
+          'Delete Failed',
+          error.response?.data?.message || 'Failed to delete user',
+          5000
+        );
       }
     }
   };

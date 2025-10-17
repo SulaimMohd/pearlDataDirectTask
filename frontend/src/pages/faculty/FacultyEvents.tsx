@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Calendar, 
@@ -12,43 +12,14 @@ import {
   Beaker,
   Presentation
 } from 'lucide-react';
-import axios from 'axios';
-
-interface Event {
-  id: number;
-  title: string;
-  description: string;
-  startTime: string;
-  endTime: string;
-  location: string;
-  eventType: string;
-  status: string;
-}
+import { useFaculty } from '../../context/FacultyContext';
 
 const FacultyEvents: React.FC = () => {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { state, fetchEvents } = useFaculty();
 
   useEffect(() => {
     fetchEvents();
-  }, []);
-
-  const fetchEvents = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/faculty/events', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      setEvents(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch events');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchEvents]);
 
   const getEventTypeIcon = (eventType: string) => {
     switch (eventType.toLowerCase()) {
@@ -116,7 +87,7 @@ const FacultyEvents: React.FC = () => {
     return eventDate.toDateString() === today.toDateString();
   };
 
-  if (loading) {
+  if (state.loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="glass-card p-8 text-center">
@@ -127,11 +98,11 @@ const FacultyEvents: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (state.error) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="glass-card p-8 text-center">
-          <p className="text-red-500 text-lg">{error}</p>
+          <p className="text-red-500 text-lg">{state.error}</p>
           <button
             onClick={fetchEvents}
             className="mt-4 px-4 py-2 glass-button rounded-xl font-semibold hover:bg-white/30 transition-all duration-300"
@@ -158,7 +129,7 @@ const FacultyEvents: React.FC = () => {
       </div>
 
       {/* Events Grid */}
-      {events.length === 0 ? (
+      {state.events.length === 0 ? (
         <div className="glass-card p-8 text-center">
           <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600 text-lg">No events found. Create your first event to get started!</p>
@@ -172,7 +143,7 @@ const FacultyEvents: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {events.map((event) => (
+          {state.events.map((event) => (
             <div key={event.id} className="floating-card p-6 hover:shadow-2xl transition-all duration-300">
               {/* Event Header */}
               <div className="flex items-start justify-between mb-4">

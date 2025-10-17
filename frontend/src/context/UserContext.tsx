@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import axios from 'axios';
+import { useAuth } from './AuthContext';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -87,14 +88,23 @@ const userReducer = (state: UserState, action: UserAction): UserState => {
   }
 };
 
+interface DashboardStats {
+  totalUsers: number;
+  totalStudents: number;
+  totalFaculty: number;
+  totalAdmins: number;
+}
+
 interface UserContextType {
   state: UserState;
   fetchUsers: () => Promise<void>;
   createUser: (user: Omit<User, 'id'>) => Promise<void>;
+  createUserWithRole: (user: Omit<User, 'id'>, role: 'STUDENT' | 'FACULTY' | 'ADMIN') => Promise<void>;
   updateUser: (id: number, user: Omit<User, 'id'>) => Promise<void>;
   deleteUser: (id: number) => Promise<void>;
   getUser: (id: number) => Promise<User | null>;
   searchUsers: (query: string) => Promise<User[]>;
+  fetchDashboardStats: () => Promise<DashboardStats | null>;
   clearError: () => void;
 }
 
@@ -102,13 +112,25 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(userReducer, initialState);
+  const { state: authState } = useAuth();
+
+  const getAuthHeaders = useCallback(() => {
+    if (!authState.isAuthenticated || !authState.user?.token) {
+      throw new Error('User not authenticated');
+    }
+    return {
+      headers: {
+        Authorization: `Bearer ${authState.user.token}`,
+      },
+    };
+  }, [authState.isAuthenticated, authState.user?.token]);
 
   const fetchUsers = async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'CLEAR_ERROR' });
     try {
-      const response = await axios.get(`${API_BASE_URL}/users`);
-      dispatch({ type: 'SET_USERS', payload: response.data });
+      const response = await axios.get(`${API_BASE_URL}/admin/users`, getAuthHeaders());
+      dispatch({ type: 'SET_USERS', payload: response.data.data?.content || response.data.data || [] });
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Failed to fetch users' });
     }
@@ -118,7 +140,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'CLEAR_ERROR' });
     try {
-      const response = await axios.post(`${API_BASE_URL}/users`, userData);
+      const response = await axios.post(`${API_BASE_URL}/admin/users`, userData, getAuthHeaders());
       dispatch({ type: 'ADD_USER', payload: response.data });
       dispatch({ type: 'SET_LOADING', payload: false });
     } catch (error: any) {
@@ -127,11 +149,25 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const createUserWithRole = async (userData: Omit<User, 'id'>, role: 'STUDENT' | 'FACULTY' | 'ADMIN') => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'CLEAR_ERROR' });
+    try {
+      const endpoint = `${API_BASE_URL}/admin/users/${role.toLowerCase()}`;
+      const response = await axios.post(endpoint, userData, getAuthHeaders());
+      dispatch({ type: 'ADD_USER', payload: response.data.user });
+      dispatch({ type: 'SET_LOADING', payload: false });
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.response?.data?.error || 'Failed to create user' });
+      throw error;
+    }
+  };
+
   const updateUser = async (id: number, userData: Omit<User, 'id'>) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'CLEAR_ERROR' });
     try {
-      const response = await axios.put(`${API_BASE_URL}/users/${id}`, userData);
+      const response = await axios.put(`${API_BASE_URL}/admin/users/${id}`, userData, getAuthHeaders());
       dispatch({ type: 'UPDATE_USER', payload: response.data });
       dispatch({ type: 'SET_LOADING', payload: false });
     } catch (error: any) {
@@ -144,7 +180,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'CLEAR_ERROR' });
     try {
-      await axios.delete(`${API_BASE_URL}/users/${id}`);
+      await axios.delete(`${API_BASE_URL}/admin/users/${id}`, getAuthHeaders());
       dispatch({ type: 'DELETE_USER', payload: id });
       dispatch({ type: 'SET_LOADING', payload: false });
     } catch (error: any) {
@@ -155,8 +191,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getUser = async (id: number): Promise<User | null> => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/users/${id}`);
-      return response.data;
+      const response = await axios.get(`${API_BASE_URL}/admin/users/${id}`, getAuthHeaders());
+      return response.data.data;
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.response?.data || 'Failed to fetch user' });
       return null;
@@ -165,11 +201,21 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const searchUsers = async (query: string): Promise<User[]> => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}`);
-      return response.data;
+      const response = await axios.get(`${API_BASE_URL}/admin/users/search?q=${encodeURIComponent(query)}`, getAuthHeaders());
+      return response.data.data;
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.response?.data || 'Failed to search users' });
       return [];
+    }
+  };
+
+  const fetchDashboardStats = async (): Promise<DashboardStats | null> => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/admin/dashboard-stats`, getAuthHeaders());
+      return response.data.data;
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Failed to fetch dashboard stats' });
+      return null;
     }
   };
 
@@ -183,10 +229,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     state,
     fetchUsers,
     createUser,
+    createUserWithRole,
     updateUser,
     deleteUser,
     getUser,
     searchUsers,
+    fetchDashboardStats,
     clearError,
   };
 

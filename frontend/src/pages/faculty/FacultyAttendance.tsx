@@ -9,26 +9,8 @@ import {
   Calendar,
   MapPin
 } from 'lucide-react';
+import { useFaculty, Event } from '../../context/FacultyContext';
 import axios from 'axios';
-
-interface Student {
-  id: number;
-  name: string;
-  email: string;
-  phoneNumber: string;
-  bio?: string;
-}
-
-interface Event {
-  id: number;
-  title: string;
-  description: string;
-  startTime: string;
-  endTime: string;
-  location: string;
-  eventType: string;
-  status: string;
-}
 
 interface AttendanceRecord {
   studentId: number;
@@ -37,11 +19,9 @@ interface AttendanceRecord {
 }
 
 const FacultyAttendance: React.FC = () => {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const { state, fetchStudents, fetchEvents } = useFaculty();
+  const [selectedEvent, setSelectedEvent] = useState<(Event & { id: number }) | null>(null);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -49,47 +29,20 @@ const FacultyAttendance: React.FC = () => {
   useEffect(() => {
     fetchStudents();
     fetchEvents();
-  }, []);
+  }, [fetchStudents, fetchEvents]);
 
-  const fetchStudents = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/faculty/students', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      setStudents(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch students');
-    }
-  };
-
-  const fetchEvents = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8080/api/faculty/events', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      setEvents(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch events');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleEventSelect = (event: Event) => {
-    setSelectedEvent(event);
-    // Initialize attendance records for all students
-    const initialRecords: AttendanceRecord[] = students.map(student => ({
-      studentId: student.id,
-      status: 'PRESENT', // Default to present
-      remarks: ''
-    }));
-    setAttendanceRecords(initialRecords);
+    if (event.id) {
+      setSelectedEvent(event as Event & { id: number });
+      // Initialize attendance records for all students
+      const initialRecords: AttendanceRecord[] = state.students.map(student => ({
+        studentId: student.id!,
+        status: 'PRESENT', // Default to present
+        remarks: ''
+      }));
+      setAttendanceRecords(initialRecords);
+    }
   };
 
   const updateAttendanceStatus = (studentId: number, status: string) => {
@@ -135,7 +88,13 @@ const FacultyAttendance: React.FC = () => {
         'http://localhost:8080/api/faculty/attendance',
         {
           eventId: selectedEvent.id,
-          attendanceRecords: attendanceRecords
+          attendanceRecords: attendanceRecords.map(record => ({
+            studentId: record.studentId,
+            status: record.status,
+            marksObtained: null,
+            maxMarks: null,
+            remarks: record.remarks || null
+          }))
         },
         {
           headers: {
@@ -147,7 +106,7 @@ const FacultyAttendance: React.FC = () => {
 
       setSuccess(response.data.message || 'Attendance marked successfully');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to mark attendance');
+      setError(err.response?.data?.message || 'Failed to mark attendance');
     } finally {
       setSaving(false);
     }
@@ -179,7 +138,7 @@ const FacultyAttendance: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (state.loading && (state.students.length === 0 || state.events.length === 0)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="glass-card p-8 text-center">
@@ -212,9 +171,9 @@ const FacultyAttendance: React.FC = () => {
       </div>
 
       {/* Messages */}
-      {error && (
+      {(error || state.error) && (
         <div className="glass-card p-4 border border-red-200 bg-red-50">
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600">{error || state.error}</p>
         </div>
       )}
 
@@ -229,7 +188,7 @@ const FacultyAttendance: React.FC = () => {
         <div className="floating-card p-6">
           <h2 className="text-xl font-bold gradient-text mb-4">Select an Event</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {events.map((event) => (
+            {state.events.map((event) => (
               <button
                 key={event.id}
                 onClick={() => handleEventSelect(event)}
@@ -299,14 +258,14 @@ const FacultyAttendance: React.FC = () => {
               <h3 className="text-xl font-bold gradient-text">Student Attendance</h3>
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Users className="w-4 h-4" />
-                <span>{students.length} students</span>
+                <span>{state.students.length} students</span>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {students.map((student) => {
-                const currentStatus = getAttendanceStatus(student.id);
-                const currentRemarks = getRemarks(student.id);
+              {state.students.map((student) => {
+                const currentStatus = getAttendanceStatus(student.id!);
+                const currentRemarks = getRemarks(student.id!);
 
                 return (
                   <div key={student.id} className="glass-card p-4 hover:shadow-xl transition-all duration-300">
@@ -325,7 +284,7 @@ const FacultyAttendance: React.FC = () => {
                       {['PRESENT', 'ABSENT', 'LATE'].map((status) => (
                         <button
                           key={status}
-                          onClick={() => updateAttendanceStatus(student.id, status)}
+                          onClick={() => updateAttendanceStatus(student.id!, status)}
                           className={`flex-1 flex items-center justify-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
                             currentStatus === status
                               ? getStatusColor(status)
@@ -342,7 +301,7 @@ const FacultyAttendance: React.FC = () => {
                     <textarea
                       placeholder="Add remarks (optional)..."
                       value={currentRemarks}
-                      onChange={(e) => updateRemarks(student.id, e.target.value)}
+                      onChange={(e) => updateRemarks(student.id!, e.target.value)}
                       className="w-full px-3 py-2 glass-button rounded-lg text-sm focus:outline-none resize-none"
                       rows={2}
                     />

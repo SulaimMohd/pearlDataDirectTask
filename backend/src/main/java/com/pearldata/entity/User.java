@@ -50,6 +50,9 @@ public class User {
     @Column(name = "bio", length = 500)
     private String bio;
     
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+    
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
@@ -123,6 +126,14 @@ public class User {
     
     public void setBio(String bio) {
         this.bio = bio;
+    }
+    
+    public Boolean getIsActive() {
+        return isActive;
+    }
+    
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
     
     public LocalDateTime getCreatedAt() {

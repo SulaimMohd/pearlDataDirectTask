@@ -11,25 +11,15 @@ import {
   Plus
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useFaculty } from '../../context/FacultyContext';
 
 const FacultyDashboard: React.FC = () => {
   const { state } = useAuth();
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    totalEvents: 0,
-    upcomingEvents: 0,
-    attendanceRate: 0
-  });
+  const { state: facultyState, fetchStats } = useFaculty();
 
   useEffect(() => {
-    // Mock data - in a real app, you'd fetch this from the API
-    setStats({
-      totalStudents: 25,
-      totalEvents: 8,
-      upcomingEvents: 3,
-      attendanceRate: 87.5
-    });
-  }, []);
+    fetchStats();
+  }, [fetchStats]);
 
   const quickActions = [
     {
@@ -110,7 +100,7 @@ const FacultyDashboard: React.FC = () => {
           <div className="flex items-center justify-between h-full">
             <div className="flex flex-col justify-center">
               <p className="text-sm font-medium text-gray-600">Total Students</p>
-              <p className="text-3xl font-bold text-gray-900 leading-none">{stats.totalStudents}</p>
+              <p className="text-3xl font-bold text-gray-900 leading-none">{facultyState.stats?.totalStudents || 0}</p>
             </div>
             <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white flex-shrink-0">
               <Users className="w-6 h-6" />
@@ -122,7 +112,7 @@ const FacultyDashboard: React.FC = () => {
           <div className="flex items-center justify-between h-full">
             <div className="flex flex-col justify-center">
               <p className="text-sm font-medium text-gray-600">Total Events</p>
-              <p className="text-3xl font-bold text-gray-900 leading-none">{stats.totalEvents}</p>
+              <p className="text-3xl font-bold text-gray-900 leading-none">{facultyState.stats?.totalEvents || 0}</p>
             </div>
             <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center text-white flex-shrink-0">
               <Calendar className="w-6 h-6" />
@@ -134,7 +124,7 @@ const FacultyDashboard: React.FC = () => {
           <div className="flex items-center justify-between h-full">
             <div className="flex flex-col justify-center">
               <p className="text-sm font-medium text-gray-600">Upcoming Events</p>
-              <p className="text-3xl font-bold text-gray-900 leading-none">{stats.upcomingEvents}</p>
+              <p className="text-3xl font-bold text-gray-900 leading-none">{facultyState.stats?.upcomingEvents || 0}</p>
             </div>
             <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white flex-shrink-0">
               <Clock className="w-6 h-6" />
@@ -146,7 +136,7 @@ const FacultyDashboard: React.FC = () => {
           <div className="flex items-center justify-between h-full">
             <div className="flex flex-col justify-center">
               <p className="text-sm font-medium text-gray-600">Avg. Attendance</p>
-              <p className="text-3xl font-bold text-gray-900 leading-none">{stats.attendanceRate}%</p>
+              <p className="text-3xl font-bold text-gray-900 leading-none">{facultyState.stats?.attendanceRate || '0.00'}%</p>
             </div>
             <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-white flex-shrink-0">
               <TrendingUp className="w-6 h-6" />
