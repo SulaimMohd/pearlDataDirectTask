@@ -12,6 +12,7 @@
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/repository/StudentRepository.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/service/UserService.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/FullstackAppApplication.java
+/Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/dto/MarkAttendanceAndUpdateEventDTO.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/entity/Event.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/security/CustomUserDetailsService.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/service/EventService.java
@@ -25,6 +26,7 @@
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/repository/UserRepository.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/security/JwtAuthenticationFilter.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/repository/AttendanceRepository.java
+/Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/dto/AdminCreateStudentDTO.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/service/StudentService.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/dto/StudentAttendanceAnalyticsDTO.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/controller/StudentController.java
@@ -33,5 +35,6 @@
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/dto/LoginRequest.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/entity/User.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/controller/AdminController.java
+/Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/dto/AttendanceMarkingResponseDTO.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/dto/EventRequest.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/controller/FacultyController.java

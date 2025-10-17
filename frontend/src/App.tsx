@@ -164,6 +164,13 @@ function App() {
                 </FacultyRoute>
               </FacultyLayout>
             } />
+            <Route path="/faculty/attendance/:eventId" element={
+              <FacultyLayout>
+                <FacultyRoute>
+                  <FacultyAttendance />
+                </FacultyRoute>
+              </FacultyLayout>
+            } />
                          <Route path="/faculty/analytics" element={
                            <FacultyLayout>
                              <FacultyRoute>

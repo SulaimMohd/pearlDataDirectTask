@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
   Clock, 
@@ -13,13 +13,45 @@ import {
   Presentation
 } from 'lucide-react';
 import { useFaculty } from '../../context/FacultyContext';
+import CreateEventModal, { CreateEventData } from '../../components/CreateEventModal';
+import { useToast } from '../../context/ToastContext';
 
 const FacultyEvents: React.FC = () => {
-  const { state, fetchEvents } = useFaculty();
+  const { state, fetchEvents, createEvent } = useFaculty();
+  const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  const handleMarkAttendance = (eventId: number) => {
+    navigate(`/faculty/attendance/${eventId}`);
+  };
+
+  const handleCreateEvent = async (eventData: CreateEventData) => {
+    setIsCreating(true);
+    try {
+      await createEvent(eventData);
+      showSuccess('Event created successfully!');
+      await fetchEvents(); // Refresh the events list
+    } catch (error: any) {
+      showError(error.message || 'Failed to create event');
+      throw error; // Re-throw to let the modal handle it
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
 
   const getEventTypeIcon = (eventType: string) => {
     switch (eventType.toLowerCase()) {
@@ -119,13 +151,13 @@ const FacultyEvents: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold gradient-text">Event Management</h1>
-        <Link
-          to="/faculty/events/new"
-          className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all duration-300"
+        <button
+          onClick={handleOpenModal}
+          className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
         >
           <Plus className="w-5 h-5" />
           <span>Create Event</span>
-        </Link>
+        </button>
       </div>
 
       {/* Events Grid */}
@@ -133,13 +165,13 @@ const FacultyEvents: React.FC = () => {
         <div className="glass-card p-8 text-center">
           <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600 text-lg">No events found. Create your first event to get started!</p>
-          <Link
-            to="/faculty/events/new"
-            className="inline-flex items-center space-x-2 mt-4 px-6 py-3 glass-button rounded-xl font-semibold hover:bg-white/30 transition-all duration-300"
+          <button
+            onClick={handleOpenModal}
+            className="inline-flex items-center space-x-2 mt-4 px-6 py-3 glass-button rounded-xl font-semibold hover:bg-white/30 transition-all duration-300 cursor-pointer"
           >
             <Plus className="w-5 h-5" />
             <span>Create Event</span>
-          </Link>
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -215,7 +247,10 @@ const FacultyEvents: React.FC = () => {
                       <button className="flex-1 text-center py-2 glass-button rounded-lg hover:bg-white/30 transition-all duration-300">
                         Edit Event
                       </button>
-                      <button className="flex-1 text-center py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-xl transition-all duration-300">
+                      <button 
+                        onClick={() => event.id && handleMarkAttendance(event.id)}
+                        className="flex-1 text-center py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
+                      >
                         Mark Attendance
                       </button>
                     </>
@@ -230,6 +265,14 @@ const FacultyEvents: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Create Event Modal */}
+      <CreateEventModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSubmit={handleCreateEvent}
+        loading={isCreating}
+      />
     </div>
   );
 };

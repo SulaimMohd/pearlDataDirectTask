@@ -8,7 +8,7 @@ export interface Event {
   id?: number;
   title: string;
   description?: string;
-  eventType: 'LECTURE' | 'LAB' | 'SEMINAR' | 'EXAM' | 'WORKSHOP' | 'OTHER';
+  eventType: 'LECTURE' | 'LAB' | 'SEMINAR' | 'EXAM' | 'WORKSHOP' | 'ASSIGNMENT' | 'MEETING' | 'PRESENTATION';
   startTime: string;
   endTime: string;
   location: string;

@@ -157,6 +157,9 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     // Check if attendance exists for student and event
     boolean existsByStudentAndEvent(Student student, Event event);
     
+    // Check if attendance exists for event
+    boolean existsByEvent(Event event);
+    
     // Delete attendance by student
     void deleteByStudent(Student student);
     

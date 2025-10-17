@@ -421,6 +421,21 @@ public class FacultyController {
         }
     }
 
+    // Enhanced endpoint: Mark attendance and optionally update event status
+    @PostMapping("/attendance/enhanced")
+    public ResponseEntity<?> markAttendanceAndUpdateEvent(@Valid @RequestBody MarkAttendanceAndUpdateEventDTO dto) {
+        try {
+            User faculty = getCurrentFaculty();
+            AttendanceMarkingResponseDTO response = attendanceService.markAttendanceAndUpdateEvent(dto, faculty.getId());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
+
     // Get attendance by event
     @GetMapping("/attendance/event/{eventId}")
     public ResponseEntity<?> getAttendanceByEvent(@PathVariable Long eventId) {

@@ -1,5 +1,6 @@
 package com.pearldata.service;
 
+import com.pearldata.dto.AdminCreateStudentDTO;
 import com.pearldata.dto.CreateStudentDTO;
 import com.pearldata.dto.StudentResponseDTO;
 import com.pearldata.entity.Student;
@@ -68,10 +69,93 @@ public class StudentService {
         user.setPhoneNumber(createStudentDTO.getPhoneNumber());
         user.setBio(createStudentDTO.getBio());
         user.setRole(User.Role.STUDENT);
-        user.setPassword(passwordEncoder.encode("student123")); // Default password
-        userService.saveUser(user);
+        user.setPassword("student123"); // Default password for regular student creation
+        userService.createUser(user);
 
         return new StudentResponseDTO(savedStudent);
+    }
+
+    // Create student with password (for admin creation)
+    public StudentResponseDTO createStudentWithPassword(AdminCreateStudentDTO adminCreateStudentDTO) {
+        // Check if student already exists with this email
+        if (studentRepository.existsByEmail(adminCreateStudentDTO.getEmail())) {
+            throw new RuntimeException("Student with this email already exists");
+        }
+        if (studentRepository.existsByStudentId(adminCreateStudentDTO.getStudentId())) {
+            throw new RuntimeException("Student with this student ID already exists");
+        }
+
+        // Generate a unique student ID if not provided
+        String studentId = adminCreateStudentDTO.getStudentId();
+        if (studentId == null || studentId.trim().isEmpty()) {
+            studentId = generateUniqueStudentId();
+        }
+
+        // Create student entity
+        Student student = new Student();
+        student.setName(adminCreateStudentDTO.getName());
+        student.setEmail(adminCreateStudentDTO.getEmail());
+        student.setPhoneNumber(adminCreateStudentDTO.getPhoneNumber());
+        student.setBio(adminCreateStudentDTO.getBio());
+        student.setStudentId(studentId);
+        student.setDepartment(adminCreateStudentDTO.getDepartment());
+        student.setCourse(adminCreateStudentDTO.getCourse());
+        student.setAcademicYear(adminCreateStudentDTO.getAcademicYear());
+        student.setSemester(adminCreateStudentDTO.getSemester());
+        student.setIsActive(true);
+
+        Student savedStudent = studentRepository.save(student);
+
+        // Create corresponding user account with provided password
+        User user = new User();
+        user.setName(adminCreateStudentDTO.getName());
+        user.setEmail(adminCreateStudentDTO.getEmail());
+        user.setPhoneNumber(adminCreateStudentDTO.getPhoneNumber());
+        user.setBio(adminCreateStudentDTO.getBio());
+        user.setRole(User.Role.STUDENT);
+        user.setPassword(adminCreateStudentDTO.getPassword()); // Use provided password (will be encoded by createUser)
+        userService.createUser(user);
+
+        return new StudentResponseDTO(savedStudent);
+    }
+
+    // Create student from User entity (for admin creation)
+    public StudentResponseDTO createStudentFromUser(User user) {
+        // Check if student already exists with this email
+        if (studentRepository.existsByEmail(user.getEmail())) {
+            throw new RuntimeException("Student with this email already exists");
+        }
+
+        // Generate a unique student ID
+        String studentId = generateUniqueStudentId();
+
+        // Create student entity
+        Student student = new Student();
+        student.setName(user.getName());
+        student.setEmail(user.getEmail());
+        student.setPhoneNumber(user.getPhoneNumber());
+        student.setBio(user.getBio());
+        student.setStudentId(studentId);
+        student.setDepartment("Computer Science"); // Default department
+        student.setCourse("Bachelor of Technology"); // Default course
+        student.setAcademicYear("2024"); // Default academic year
+        student.setSemester("1"); // Default semester
+        student.setIsActive(true);
+
+        Student savedStudent = studentRepository.save(student);
+        return new StudentResponseDTO(savedStudent);
+    }
+
+    // Generate unique student ID
+    private String generateUniqueStudentId() {
+        String prefix = "CS";
+        int year = java.time.Year.now().getValue();
+        
+        // Get the count of students created this year
+        long count = studentRepository.count();
+        String sequence = String.format("%04d", count + 1);
+        
+        return prefix + year + sequence;
     }
 
     // Get student by ID
@@ -86,6 +170,37 @@ public class StudentService {
     public Student getStudentEntityById(Long studentId) {
         return studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
+    }
+
+    // Update student
+    @Transactional
+    public Student updateStudent(Long studentId, Student studentData) {
+        Student student = getStudentEntityById(studentId);
+        
+        // Update allowed fields
+        if (studentData.getName() != null) {
+            student.setName(studentData.getName());
+        }
+        if (studentData.getPhoneNumber() != null) {
+            student.setPhoneNumber(studentData.getPhoneNumber());
+        }
+        if (studentData.getBio() != null) {
+            student.setBio(studentData.getBio());
+        }
+        if (studentData.getDepartment() != null) {
+            student.setDepartment(studentData.getDepartment());
+        }
+        if (studentData.getCourse() != null) {
+            student.setCourse(studentData.getCourse());
+        }
+        if (studentData.getAcademicYear() != null) {
+            student.setAcademicYear(studentData.getAcademicYear());
+        }
+        if (studentData.getSemester() != null) {
+            student.setSemester(studentData.getSemester());
+        }
+        
+        return studentRepository.save(student);
     }
 
 

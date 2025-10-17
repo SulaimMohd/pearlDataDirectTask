@@ -139,15 +139,32 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const endpoint = `${API_BASE_URL}/admin/users/${role.toLowerCase()}`;
       
-      // For now, only send the basic fields that the backend expects
-      // TODO: Update backend to handle full student data
-      const payload = {
-        name: userData.name,
-        email: userData.email,
-        password: userData.password,
-        phoneNumber: userData.phoneNumber,
-        bio: userData.bio || ''
-      };
+      let payload: any;
+      
+      if (role === 'STUDENT') {
+        // Send complete student data including student-specific fields
+        payload = {
+          name: userData.name,
+          email: userData.email,
+          password: userData.password,
+          phoneNumber: userData.phoneNumber,
+          bio: userData.bio || '',
+          studentId: userData.studentId,
+          department: userData.department,
+          course: userData.course,
+          academicYear: userData.academicYear,
+          semester: userData.semester
+        };
+      } else {
+        // For faculty and admin, send only basic fields
+        payload = {
+          name: userData.name,
+          email: userData.email,
+          password: userData.password,
+          phoneNumber: userData.phoneNumber,
+          bio: userData.bio || ''
+        };
+      }
       
       const response = await axios.post(endpoint, payload, getAuthHeaders());
       dispatch({ type: 'ADD_USER', payload: response.data.user });

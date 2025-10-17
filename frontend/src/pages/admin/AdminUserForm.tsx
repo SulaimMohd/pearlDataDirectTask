@@ -65,6 +65,11 @@ const AdminUserForm: React.FC<AdminUserFormProps> = ({ userType }) => {
         setLoading(false);
         return;
       }
+      if (formData.studentId.length < 5 || formData.studentId.length > 20) {
+        setError('Student ID must be between 5 and 20 characters.');
+        setLoading(false);
+        return;
+      }
       if (!formData.department) {
         setError('Department is required.');
         setLoading(false);
@@ -276,7 +281,7 @@ const AdminUserForm: React.FC<AdminUserFormProps> = ({ userType }) => {
                     value={formData.studentId}
                     onChange={handleChange}
                     className="w-full px-4 py-3 glass-button rounded-xl focus:outline-none"
-                    placeholder="Enter student ID (e.g., 2023001)"
+                    placeholder="Enter student ID (5-20 characters, e.g., CS2024001)"
                     required
                   />
                 </div>
@@ -332,10 +337,10 @@ const AdminUserForm: React.FC<AdminUserFormProps> = ({ userType }) => {
                     required
                   >
                     <option value="">Select Academic Year</option>
-                    <option value="2024-25">2024-25</option>
-                    <option value="2023-24">2023-24</option>
-                    <option value="2022-23">2022-23</option>
-                    <option value="2021-22">2021-22</option>
+                    <option value="2024">2024-25</option>
+                    <option value="2023">2023-24</option>
+                    <option value="2022">2022-23</option>
+                    <option value="2021">2021-22</option>
                   </select>
                 </div>
 

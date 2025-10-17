@@ -1,6 +1,8 @@
 package com.pearldata.service;
 
 import com.pearldata.dto.MarkAttendanceDTO;
+import com.pearldata.dto.MarkAttendanceAndUpdateEventDTO;
+import com.pearldata.dto.AttendanceMarkingResponseDTO;
 import com.pearldata.entity.Attendance;
 import com.pearldata.entity.Event;
 import com.pearldata.entity.Student;
@@ -101,6 +103,151 @@ public class AttendanceService {
                 .collect(Collectors.toList());
 
         return attendanceRecords;
+    }
+
+    // Enhanced method: Mark attendance and optionally update event status
+    public AttendanceMarkingResponseDTO markAttendanceAndUpdateEvent(MarkAttendanceAndUpdateEventDTO dto, Long facultyId) {
+        // Validate faculty
+        User faculty = userService.getUserById(facultyId)
+                .orElseThrow(() -> new RuntimeException("Faculty not found"));
+        
+        if (faculty.getRole() != User.Role.FACULTY) {
+            throw new RuntimeException("User is not a faculty member");
+        }
+
+        // Get event
+        Event event = eventRepository.findById(dto.getEventId())
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+
+        // Check if faculty owns this event
+        if (!event.getFaculty().getId().equals(facultyId)) {
+            throw new RuntimeException("You don't have permission to mark attendance for this event");
+        }
+
+        // Validate event status
+        if (event.getStatus() == Event.EventStatus.CANCELLED) {
+            throw new RuntimeException("Cannot mark attendance for cancelled events");
+        }
+
+        Event.EventStatus previousEventStatus = event.getStatus();
+        Event.EventStatus newEventStatus = previousEventStatus;
+        boolean eventStatusChanged = false;
+
+        // Process attendance records
+        List<Attendance> attendanceRecords = dto.getAttendanceRecords().stream()
+                .map(recordDTO -> {
+                    // Validate student
+                    Student student = studentRepository.findById(recordDTO.getStudentId())
+                            .orElseThrow(() -> new RuntimeException("Student not found: " + recordDTO.getStudentId()));
+
+                    // Check for existing attendance
+                    Optional<Attendance> existingAttendance = attendanceRepository
+                            .findByStudentAndEvent(student, event);
+                    
+                    if (existingAttendance.isPresent()) {
+                        // Update existing attendance
+                        Attendance attendance = existingAttendance.get();
+                        attendance.setStatus(recordDTO.getStatus());
+                        attendance.setMarksObtained(recordDTO.getMarksObtained());
+                        attendance.setMaxMarks(recordDTO.getMaxMarks());
+                        attendance.setRemarks(recordDTO.getRemarks());
+                        attendance.setMarkedByFaculty(faculty);
+                        return attendanceRepository.save(attendance);
+                    } else {
+                        // Create new attendance
+                        Attendance attendance = new Attendance();
+                        attendance.setStudent(student);
+                        attendance.setEvent(event);
+                        attendance.setStatus(recordDTO.getStatus());
+                        attendance.setMarksObtained(recordDTO.getMarksObtained());
+                        attendance.setMaxMarks(recordDTO.getMaxMarks());
+                        attendance.setRemarks(recordDTO.getRemarks());
+                        attendance.setMarkedByFaculty(faculty);
+                        return attendanceRepository.save(attendance);
+                    }
+                })
+                .collect(Collectors.toList());
+
+        // Update event status if requested
+        if (dto.getMarkEventAsCompleted() != null && dto.getMarkEventAsCompleted()) {
+            // Check if attendance has been marked before for this event
+            boolean hasExistingAttendance = attendanceRepository.existsByEvent(event);
+            
+            if (event.getStatus() == Event.EventStatus.SCHEDULED) {
+                if (hasExistingAttendance) {
+                    // If attendance was already marked before, directly mark as COMPLETED
+                    newEventStatus = Event.EventStatus.COMPLETED;
+                } else {
+                    // First time marking attendance, mark as ONGOING
+                    newEventStatus = Event.EventStatus.ONGOING;
+                }
+                event.setStatus(newEventStatus);
+                event.setUpdatedAt(LocalDateTime.now());
+                eventRepository.save(event);
+                eventStatusChanged = true;
+            } else if (event.getStatus() == Event.EventStatus.ONGOING) {
+                // Always mark as COMPLETED when status is ONGOING
+                newEventStatus = Event.EventStatus.COMPLETED;
+                event.setStatus(newEventStatus);
+                event.setUpdatedAt(LocalDateTime.now());
+                eventRepository.save(event);
+                eventStatusChanged = true;
+            }
+        }
+
+        // Calculate attendance summary
+        int totalStudents = attendanceRecords.size();
+        int presentCount = (int) attendanceRecords.stream()
+                .filter(a -> a.getStatus() == Attendance.AttendanceStatus.PRESENT)
+                .count();
+        int absentCount = (int) attendanceRecords.stream()
+                .filter(a -> a.getStatus() == Attendance.AttendanceStatus.ABSENT)
+                .count();
+        int lateCount = (int) attendanceRecords.stream()
+                .filter(a -> a.getStatus() == Attendance.AttendanceStatus.LATE)
+                .count();
+        
+        double attendancePercentage = totalStudents > 0 ? 
+                ((double) (presentCount + lateCount) / totalStudents) * 100 : 0;
+
+        // Calculate average marks
+        double averageMarks = attendanceRecords.stream()
+                .filter(a -> a.getMarksObtained() != null)
+                .mapToDouble(Attendance::getMarksObtained)
+                .average()
+                .orElse(0.0);
+
+        // Create response DTOs
+        AttendanceMarkingResponseDTO.AttendanceSummary attendanceSummary = 
+                new AttendanceMarkingResponseDTO.AttendanceSummary(
+                        totalStudents, presentCount, absentCount, lateCount, 
+                        attendancePercentage, averageMarks);
+
+        AttendanceMarkingResponseDTO.EventSummary eventSummary = 
+                new AttendanceMarkingResponseDTO.EventSummary(
+                        event.getId(), event.getTitle(), previousEventStatus, 
+                        newEventStatus, eventStatusChanged, LocalDateTime.now());
+
+        List<AttendanceMarkingResponseDTO.AttendanceRecord> responseRecords = 
+                attendanceRecords.stream()
+                        .map(a -> new AttendanceMarkingResponseDTO.AttendanceRecord(
+                                a.getStudent().getId(),
+                                a.getStudent().getName(),
+                                a.getStatus(),
+                                a.getMarksObtained(),
+                                a.getMaxMarks(),
+                                a.getMaxMarks() != null && a.getMarksObtained() != null && a.getMaxMarks() > 0 ?
+                                        (a.getMarksObtained() / a.getMaxMarks()) * 100 : null,
+                                a.getRemarks()
+                        ))
+                        .collect(Collectors.toList());
+
+        String message = "Attendance marked successfully";
+        if (eventStatusChanged) {
+            message += " and event status updated to " + newEventStatus;
+        }
+
+        return new AttendanceMarkingResponseDTO(true, message, attendanceSummary, eventSummary, responseRecords);
     }
 
     // Get attendance by ID

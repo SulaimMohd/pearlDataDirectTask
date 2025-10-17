@@ -1,8 +1,10 @@
 package com.pearldata.controller;
 
 import com.pearldata.dto.SignupRequest;
+import com.pearldata.dto.AdminCreateStudentDTO;
 import com.pearldata.entity.User;
 import com.pearldata.service.UserService;
+import com.pearldata.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,32 +30,49 @@ public class AdminController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private StudentService studentService;
+
     @PostMapping("/users/student")
-    public ResponseEntity<?> createStudent(@Valid @RequestBody SignupRequest signupRequest) {
+    public ResponseEntity<?> createStudent(@Valid @RequestBody AdminCreateStudentDTO adminCreateStudentDTO) {
         try {
-            if (userService.existsByEmail(signupRequest.getEmail())) {
+            // Check if email already exists
+            if (userService.existsByEmail(adminCreateStudentDTO.getEmail())) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Email is already taken!");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
-            if (userService.existsByPhoneNumber(signupRequest.getPhoneNumber())) {
+            if (userService.existsByPhoneNumber(adminCreateStudentDTO.getPhoneNumber())) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Phone number is already taken!");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
 
-            User user = signupRequest.toUser();
-            user.setRole(User.Role.STUDENT);
-            User createdUser = userService.createUser(user);
+            // Create Student entity with password (this also creates the corresponding User entity)
+            var studentResponse = studentService.createStudentWithPassword(adminCreateStudentDTO);
+            
+            // Get the created user for response
+            User createdUser = userService.getUserByEmail(adminCreateStudentDTO.getEmail()).orElse(null);
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Student created successfully");
-            response.put("user", Map.of(
-                "id", createdUser.getId(),
-                "name", createdUser.getName(),
-                "email", createdUser.getEmail(),
-                "role", createdUser.getRole(),
-                "phoneNumber", createdUser.getPhoneNumber()
+            
+            if (createdUser != null) {
+                response.put("user", Map.of(
+                    "id", createdUser.getId(),
+                    "name", createdUser.getName(),
+                    "email", createdUser.getEmail(),
+                    "role", createdUser.getRole(),
+                    "phoneNumber", createdUser.getPhoneNumber()
+                ));
+            }
+            response.put("student", Map.of(
+                "id", studentResponse.getId(),
+                "studentId", studentResponse.getStudentId(),
+                "department", studentResponse.getDepartment(),
+                "course", studentResponse.getCourse(),
+                "academicYear", studentResponse.getAcademicYear(),
+                "semester", studentResponse.getSemester()
             ));
             
             return ResponseEntity.ok(response);

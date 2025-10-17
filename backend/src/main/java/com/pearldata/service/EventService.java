@@ -218,6 +218,48 @@ public class EventService {
         return new EventResponseDTO(updatedEvent);
     }
 
+    // Update event status
+    public EventResponseDTO updateEventStatus(Long eventId, Event.EventStatus newStatus, Long facultyId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+
+        // Check if faculty owns this event
+        if (!event.getFaculty().getId().equals(facultyId)) {
+            throw new RuntimeException("You don't have permission to update this event");
+        }
+
+        // Validate status transition
+        if (!isValidStatusTransition(event.getStatus(), newStatus)) {
+            throw new RuntimeException("Invalid status transition from " + event.getStatus() + " to " + newStatus);
+        }
+
+        Event.EventStatus previousStatus = event.getStatus();
+        event.setStatus(newStatus);
+        event.setUpdatedAt(LocalDateTime.now());
+
+        Event savedEvent = eventRepository.save(event);
+        
+        // Log the status change
+        System.out.println("Event " + eventId + " status changed from " + previousStatus + " to " + newStatus + " by faculty " + facultyId);
+        
+        return new EventResponseDTO(savedEvent);
+    }
+
+    // Validate status transitions
+    private boolean isValidStatusTransition(Event.EventStatus current, Event.EventStatus newStatus) {
+        switch (current) {
+            case SCHEDULED:
+                return newStatus == Event.EventStatus.ONGOING || newStatus == Event.EventStatus.CANCELLED;
+            case ONGOING:
+                return newStatus == Event.EventStatus.COMPLETED || newStatus == Event.EventStatus.CANCELLED;
+            case COMPLETED:
+            case CANCELLED:
+                return false; // Cannot change from completed or cancelled
+            default:
+                return false;
+        }
+    }
+
     // Delete event
     public void deleteEvent(Long eventId, Long facultyId) {
         Event event = eventRepository.findById(eventId)

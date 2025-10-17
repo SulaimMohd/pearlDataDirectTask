@@ -42,9 +42,10 @@ public class StudentController {
     private AttendanceService attendanceService;
 
     // Helper method to get current student
-    private User getCurrentStudent(Authentication authentication) {
+    private Student getCurrentStudent(Authentication authentication) {
         String email = authentication.getName();
-        return userService.getUserByEmail(email)
+        return studentService.getStudentByEmail(email)
+                .map(dto -> studentService.getStudentEntityById(dto.getId()))
                 .orElseThrow(() -> new RuntimeException("Student not found"));
     }
 
@@ -52,11 +53,7 @@ public class StudentController {
     @GetMapping("/profile")
     public ResponseEntity<?> getStudentProfile(Authentication authentication) {
         try {
-            User student = getCurrentStudent(authentication);
-            
-            // Get student details from Student entity
-            Optional<Student> studentDetails = studentService.getStudentByEmail(student.getEmail())
-                .map(dto -> studentService.getStudentEntityById(dto.getId()));
+            Student student = getCurrentStudent(authentication);
             
             Map<String, Object> profile = new HashMap<>();
             profile.put("id", student.getId());
@@ -64,18 +61,14 @@ public class StudentController {
             profile.put("email", student.getEmail());
             profile.put("phoneNumber", student.getPhoneNumber());
             profile.put("bio", student.getBio());
-            profile.put("role", student.getRole());
+            profile.put("role", "STUDENT");
             profile.put("isActive", student.getIsActive());
             profile.put("createdAt", student.getCreatedAt());
-            
-            if (studentDetails.isPresent()) {
-                Student studentInfo = studentDetails.get();
-                profile.put("studentId", studentInfo.getStudentId());
-                profile.put("department", studentInfo.getDepartment());
-                profile.put("course", studentInfo.getCourse());
-                profile.put("academicYear", studentInfo.getAcademicYear());
-                profile.put("semester", studentInfo.getSemester());
-            }
+            profile.put("studentId", student.getStudentId());
+            profile.put("department", student.getDepartment());
+            profile.put("course", student.getCourse());
+            profile.put("academicYear", student.getAcademicYear());
+            profile.put("semester", student.getSemester());
 
             return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -93,21 +86,10 @@ public class StudentController {
     @GetMapping("/dashboard-stats")
     public ResponseEntity<?> getDashboardStats(Authentication authentication) {
         try {
-            User student = getCurrentStudent(authentication);
-            Optional<Student> studentDetails = studentService.getStudentByEmail(student.getEmail())
-                .map(dto -> studentService.getStudentEntityById(dto.getId()));
-            
-            if (studentDetails.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", "Student details not found"
-                ));
-            }
-
-            Student studentInfo = studentDetails.get();
+            Student student = getCurrentStudent(authentication);
             
             // Get attendance statistics
-            List<Attendance> attendanceRecords = attendanceService.getAttendanceByStudent(studentInfo);
+            List<Attendance> attendanceRecords = attendanceService.getAttendanceByStudent(student);
             long totalEvents = attendanceRecords.size();
             long presentCount = attendanceRecords.stream()
                 .filter(a -> a.getStatus() == Attendance.AttendanceStatus.PRESENT)
@@ -162,22 +144,13 @@ public class StudentController {
             @RequestParam(defaultValue = "desc") String sortDir,
             Authentication authentication) {
         try {
-            User student = getCurrentStudent(authentication);
-            Optional<Student> studentDetails = studentService.getStudentByEmail(student.getEmail())
-                .map(dto -> studentService.getStudentEntityById(dto.getId()));
+            Student student = getCurrentStudent(authentication);
             
-            if (studentDetails.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", "Student details not found"
-                ));
-            }
-
             Sort sort = sortDir.equalsIgnoreCase("desc") ?
                 Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
             Pageable pageable = PageRequest.of(page, size, sort);
 
-            List<Attendance> attendanceRecords = attendanceService.getAttendanceByStudent(studentDetails.get());
+            List<Attendance> attendanceRecords = attendanceService.getAttendanceByStudent(student);
             
             // Convert to response format
             List<Map<String, Object>> attendanceData = attendanceRecords.stream()
@@ -268,19 +241,8 @@ public class StudentController {
     @GetMapping("/progress")
     public ResponseEntity<?> getStudentProgress(Authentication authentication) {
         try {
-            User student = getCurrentStudent(authentication);
-            Optional<Student> studentDetails = studentService.getStudentByEmail(student.getEmail())
-                .map(dto -> studentService.getStudentEntityById(dto.getId()));
-            
-            if (studentDetails.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", "Student details not found"
-                ));
-            }
-
-            Student studentInfo = studentDetails.get();
-            List<Attendance> attendanceRecords = attendanceService.getAttendanceByStudent(studentInfo);
+            Student student = getCurrentStudent(authentication);
+            List<Attendance> attendanceRecords = attendanceService.getAttendanceByStudent(student);
             
             // Calculate progress metrics
             long totalEvents = attendanceRecords.size();
@@ -367,7 +329,7 @@ public class StudentController {
     @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> updateData, Authentication authentication) {
         try {
-            User student = getCurrentStudent(authentication);
+            Student student = getCurrentStudent(authentication);
             
             // Update allowed fields
             if (updateData.containsKey("name")) {
@@ -380,7 +342,7 @@ public class StudentController {
                 student.setBio(updateData.get("bio"));
             }
             
-            User updatedStudent = userService.saveUser(student);
+            Student updatedStudent = studentService.updateStudent(student.getId(), student);
             
             return ResponseEntity.ok(Map.of(
                 "success", true,
