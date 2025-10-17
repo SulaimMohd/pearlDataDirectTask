@@ -30,6 +30,7 @@ public class AuthController {
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest) {
         try {
             User user = signupRequest.toUser();
+            user.setRole(User.Role.STUDENT); // Only STUDENT role allowed for public signup
             User createdUser = userService.createUser(user);
             
             Map<String, Object> response = new HashMap<>();

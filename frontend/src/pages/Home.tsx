@@ -1,10 +1,22 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Users, UserPlus, Database, Zap, LogIn, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Home: React.FC = () => {
   const { state } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect admin users to admin dashboard and faculty to faculty dashboard
+  React.useEffect(() => {
+    if (state.isAuthenticated) {
+      if (state.user?.role === 'ADMIN') {
+        navigate('/admin/dashboard');
+      } else if (state.user?.role === 'FACULTY') {
+        navigate('/faculty/dashboard');
+      }
+    }
+  }, [state.isAuthenticated, state.user?.role, navigate]);
   const features = [
     {
       icon: <Users className="w-8 h-8" />,

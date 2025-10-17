@@ -83,7 +83,7 @@ public class SignupRequest {
         user.setEmail(this.email);
         user.setPassword(this.password);
         user.setPhoneNumber(this.phoneNumber);
-        user.setRole(User.Role.STUDENT); // Only students can signup
+        // Role will be set by the calling controller
         user.setBio(this.bio);
         return user;
     }

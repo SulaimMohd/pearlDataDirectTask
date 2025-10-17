@@ -15,13 +15,13 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
-@PreAuthorize("hasRole('ADMIN') or hasRole('FACULTY') or hasRole('STUDENT')")
 public class UserController {
     
     @Autowired
     private UserService userService;
     
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('FACULTY') or hasRole('STUDENT')")
     public ResponseEntity<List<User>> getAllUsers() {
         try {
             List<User> users = userService.getAllUsers();
@@ -32,6 +32,7 @@ public class UserController {
     }
     
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('FACULTY') or hasRole('STUDENT')")
     public ResponseEntity<User> getUserById(@PathVariable Long id) {
         try {
             Optional<User> user = userService.getUserById(id);
@@ -43,6 +44,7 @@ public class UserController {
     }
     
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createUser(@Valid @RequestBody User user) {
         try {
             User createdUser = userService.createUser(user);
@@ -57,6 +59,7 @@ public class UserController {
     }
     
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @Valid @RequestBody User userDetails) {
         try {
             User updatedUser = userService.updateUser(id, userDetails);
@@ -71,6 +74,7 @@ public class UserController {
     }
     
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
             userService.deleteUser(id);
@@ -85,6 +89,7 @@ public class UserController {
     }
     
     @GetMapping("/search")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<User>> searchUsers(@RequestParam String q) {
         try {
             List<User> users = userService.searchUsers(q);

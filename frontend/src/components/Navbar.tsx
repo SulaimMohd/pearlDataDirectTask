@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, Home, Plus, LogOut, User, LogIn, UserPlus } from 'lucide-react';
+import { Users, Home, Plus, LogOut, User, LogIn, UserPlus, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar: React.FC = () => {
@@ -54,25 +54,45 @@ const Navbar: React.FC = () => {
 
             {state.isAuthenticated ? (
               <>
-                <Link
-                  to="/users"
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                    isActive('/users')
-                      ? 'glass-button text-primary-700'
-                      : 'text-gray-600 hover:text-primary-600 hover:bg-white/20'
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                  <span>Users</span>
-                </Link>
-
-                <Link
-                  to="/users/new"
-                  className="flex items-center space-x-2 px-4 py-2 glass-button text-primary-700 hover:shadow-xl transition-all duration-300"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add User</span>
-                </Link>
+                {state.user?.role === 'ADMIN' ? (
+                  <Link
+                    to="/admin/dashboard"
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                      isActive('/admin/dashboard') || location.pathname.startsWith('/admin')
+                        ? 'glass-button text-red-700'
+                        : 'text-gray-600 hover:text-red-600 hover:bg-white/20'
+                    }`}
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span>Admin Panel</span>
+                  </Link>
+                ) : state.user?.role === 'FACULTY' ? (
+                  <Link
+                    to="/faculty/dashboard"
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                      isActive('/faculty/dashboard') || location.pathname.startsWith('/faculty')
+                        ? 'glass-button text-purple-700'
+                        : 'text-gray-600 hover:text-purple-600 hover:bg-white/20'
+                    }`}
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span>Faculty Portal</span>
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to="/users"
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                        isActive('/users')
+                          ? 'glass-button text-primary-700'
+                          : 'text-gray-600 hover:text-primary-600 hover:bg-white/20'
+                      }`}
+                    >
+                      <Users className="w-4 h-4" />
+                      <span>Users</span>
+                    </Link>
+                  </>
+                )}
               </>
             ) : (
               <>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, Eye, EyeOff, LogIn, ArrowLeft } from 'lucide-react';
@@ -23,13 +23,26 @@ const Login: React.FC = () => {
     }));
   };
 
+  // Handle redirect after successful login
+  useEffect(() => {
+    if (state.isAuthenticated && state.user) {
+      if (state.user.role === 'ADMIN') {
+        navigate('/admin/dashboard');
+      } else if (state.user.role === 'FACULTY') {
+        navigate('/faculty/dashboard');
+      } else {
+        navigate('/users');
+      }
+    }
+  }, [state.isAuthenticated, state.user, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     try {
       await login(formData);
-      navigate('/users');
+      // Navigation will be handled by useEffect when state updates
     } catch (error: any) {
       setError(error.message);
     }
