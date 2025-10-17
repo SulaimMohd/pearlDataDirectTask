@@ -4,8 +4,11 @@ import com.pearldata.dto.CreateEventDTO;
 import com.pearldata.dto.EventResponseDTO;
 import com.pearldata.dto.UpdateEventDTO;
 import com.pearldata.entity.Event;
+import com.pearldata.entity.Student;
 import com.pearldata.entity.User;
 import com.pearldata.repository.EventRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,19 +16,29 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class EventService {
 
+    private static final Logger logger = LoggerFactory.getLogger(EventService.class);
+
     @Autowired
     private EventRepository eventRepository;
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private StudentService studentService;
+
+    @Autowired
+    private SmsService smsService;
 
     // Create event
     public EventResponseDTO createEvent(CreateEventDTO createEventDTO, Long facultyId) {
@@ -59,6 +72,10 @@ public class EventService {
         event.setStatus(Event.EventStatus.SCHEDULED);
 
         Event savedEvent = eventRepository.save(event);
+        
+        // Send SMS notifications to all students asynchronously
+        sendEventNotificationsToStudents(savedEvent);
+        
         return new EventResponseDTO(savedEvent);
     }
 
@@ -370,5 +387,69 @@ public class EventService {
         public long getScheduledEvents() { return scheduledEvents; }
         public long getCompletedEvents() { return completedEvents; }
         public long getCancelledEvents() { return cancelledEvents; }
+    }
+
+    /**
+     * Send SMS notifications to all students when a new event is created
+     */
+    private void sendEventNotificationsToStudents(Event event) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                logger.info("Starting SMS notifications for new event: {}", event.getTitle());
+                
+                List<Student> students = studentService.getAllStudentsList();
+                logger.info("Found {} students to notify", students.size());
+                
+                DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy");
+                DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+                
+                String eventDate = event.getStartTime().format(dateFormatter);
+                String eventTime = event.getStartTime().format(timeFormatter);
+                
+                int successCount = 0;
+                int failureCount = 0;
+                
+                for (Student student : students) {
+                    try {
+                        // Validate phone number
+                        if (smsService.isValidIndianPhoneNumber(student.getPhoneNumber())) {
+                            String formattedPhone = smsService.formatPhoneNumber(student.getPhoneNumber());
+                            
+                            boolean sent = smsService.sendEventNotification(
+                                student.getName(),
+                                formattedPhone,
+                                event.getTitle(),
+                                eventDate,
+                                eventTime
+                            );
+                            
+                            if (sent) {
+                                successCount++;
+                                logger.debug("SMS sent successfully to student: {}", student.getName());
+                            } else {
+                                failureCount++;
+                                logger.warn("Failed to send SMS to student: {}", student.getName());
+                            }
+                        } else {
+                            failureCount++;
+                            logger.warn("Invalid phone number for student: {} - {}", student.getName(), student.getPhoneNumber());
+                        }
+                        
+                        // Add small delay to avoid rate limiting
+                        Thread.sleep(200);
+                        
+                    } catch (Exception e) {
+                        failureCount++;
+                        logger.error("Error sending SMS to student {}: {}", student.getName(), e.getMessage());
+                    }
+                }
+                
+                logger.info("SMS notification completed for event '{}'. Success: {}, Failed: {}", 
+                    event.getTitle(), successCount, failureCount);
+                
+            } catch (Exception e) {
+                logger.error("Error in sendEventNotificationsToStudents: {}", e.getMessage(), e);
+            }
+        });
     }
 }

@@ -38,3 +38,17 @@ logging:
 jwt:
   secret: mySecretKeyForPearlDataApplication2024
   expiration: 86400000
+
+# Twilio SMS & WhatsApp Configuration
+twilio:
+  account:
+    sid: your_twilio_account_sid_here
+  auth:
+    token: your_twilio_auth_token_here
+  phone:
+    number: +15074323599  # Twilio trial number (replace with your Twilio number)
+  whatsapp:
+    enabled: true
+    sandbox:
+      from: whatsapp:+14155238886  # Twilio WhatsApp Sandbox number
+      to-prefix: whatsapp:+91  # Prefix for Indian numbers

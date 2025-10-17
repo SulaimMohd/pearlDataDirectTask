@@ -27,11 +27,13 @@ com/pearldata/controller/AdminEventController.class
 com/pearldata/controller/UserController.class
 com/pearldata/config/SecurityConfig.class
 com/pearldata/repository/StudentRepository.class
+com/pearldata/service/AttendanceService$1.class
 com/pearldata/entity/User$Role.class
 com/pearldata/entity/Student.class
 com/pearldata/repository/UserRepository.class
 com/pearldata/dto/LoginRequest.class
 com/pearldata/dto/AttendanceRequest.class
+com/pearldata/controller/SmsTestController.class
 com/pearldata/controller/AdminController.class
 com/pearldata/entity/Event$EventStatus.class
 com/pearldata/service/EventService$1.class

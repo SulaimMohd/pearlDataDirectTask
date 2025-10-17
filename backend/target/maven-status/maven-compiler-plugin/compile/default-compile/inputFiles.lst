@@ -16,11 +16,13 @@
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/entity/Event.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/security/CustomUserDetailsService.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/service/EventService.java
+/Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/service/SmsService.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/security/JwtUtil.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/service/AttendanceService.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/dto/CreateEventDTO.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/repository/EventRepository.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/controller/AdminStudentController.java
+/Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/controller/SmsTestController.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/dto/UpdateEventDTO.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/dto/CreateStudentDTO.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/repository/UserRepository.java

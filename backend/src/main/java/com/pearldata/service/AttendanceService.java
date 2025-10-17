@@ -10,6 +10,8 @@ import com.pearldata.entity.User;
 import com.pearldata.repository.AttendanceRepository;
 import com.pearldata.repository.EventRepository;
 import com.pearldata.repository.StudentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,11 +21,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class AttendanceService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AttendanceService.class);
 
     @Autowired
     private AttendanceRepository attendanceRepository;
@@ -36,6 +41,9 @@ public class AttendanceService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private SmsService smsService;
 
     // Mark attendance for multiple students
     public List<Attendance> markAttendance(MarkAttendanceDTO markAttendanceDTO, Long facultyId) {
@@ -246,6 +254,9 @@ public class AttendanceService {
         if (eventStatusChanged) {
             message += " and event status updated to " + newEventStatus;
         }
+
+        // Send SMS notifications to students about attendance updates
+        sendAttendanceNotificationsToStudents(attendanceRecords, event);
 
         return new AttendanceMarkingResponseDTO(true, message, attendanceSummary, eventSummary, responseRecords);
     }
@@ -565,5 +576,87 @@ public class AttendanceService {
         public long getLateCount() { return lateCount; }
         public long getExcusedCount() { return excusedCount; }
         public double getAttendancePercentage() { return attendancePercentage; }
+    }
+
+    /**
+     * Send SMS notifications to students about attendance updates
+     */
+    private void sendAttendanceNotificationsToStudents(List<Attendance> attendanceRecords, Event event) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                logger.info("Starting SMS notifications for attendance updates for event: {}", event.getTitle());
+                
+                int successCount = 0;
+                int failureCount = 0;
+                
+                for (Attendance attendance : attendanceRecords) {
+                    try {
+                        Student student = attendance.getStudent();
+                        
+                        // Validate phone number
+                        if (smsService.isValidIndianPhoneNumber(student.getPhoneNumber())) {
+                            String formattedPhone = smsService.formatPhoneNumber(student.getPhoneNumber());
+                            
+                            // Prepare attendance status text
+                            String attendanceStatus;
+                            switch (attendance.getStatus()) {
+                                case PRESENT:
+                                    attendanceStatus = "Present ✅";
+                                    break;
+                                case ABSENT:
+                                    attendanceStatus = "Absent ❌";
+                                    break;
+                                case LATE:
+                                    attendanceStatus = "Late ⏰";
+                                    break;
+                                case EXCUSED:
+                                    attendanceStatus = "Excused ✅";
+                                    break;
+                                default:
+                                    attendanceStatus = attendance.getStatus().toString();
+                            }
+                            
+                            // Prepare marks information
+                            String marksInfo = null;
+                            if (attendance.getMarksObtained() != null && attendance.getMaxMarks() != null && attendance.getMaxMarks() > 0) {
+                                marksInfo = String.format("%.1f/%d", attendance.getMarksObtained(), attendance.getMaxMarks());
+                            }
+                            
+                            boolean sent = smsService.sendAttendanceNotification(
+                                student.getName(),
+                                formattedPhone,
+                                event.getTitle(),
+                                attendanceStatus,
+                                marksInfo
+                            );
+                            
+                            if (sent) {
+                                successCount++;
+                                logger.debug("Attendance SMS sent successfully to student: {}", student.getName());
+                            } else {
+                                failureCount++;
+                                logger.warn("Failed to send attendance SMS to student: {}", student.getName());
+                            }
+                        } else {
+                            failureCount++;
+                            logger.warn("Invalid phone number for student: {} - {}", student.getName(), student.getPhoneNumber());
+                        }
+                        
+                        // Add small delay to avoid rate limiting
+                        Thread.sleep(300);
+                        
+                    } catch (Exception e) {
+                        failureCount++;
+                        logger.error("Error sending attendance SMS to student {}: {}", attendance.getStudent().getName(), e.getMessage());
+                    }
+                }
+                
+                logger.info("Attendance SMS notification completed for event '{}'. Success: {}, Failed: {}", 
+                    event.getTitle(), successCount, failureCount);
+                
+            } catch (Exception e) {
+                logger.error("Error in sendAttendanceNotificationsToStudents: {}", e.getMessage(), e);
+            }
+        });
     }
 }
