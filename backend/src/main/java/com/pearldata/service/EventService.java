@@ -297,6 +297,18 @@ public class EventService {
         return new EventStatisticsDTO(totalEvents, scheduledEvents, completedEvents, cancelledEvents);
     }
 
+    // Count upcoming events
+    @Transactional(readOnly = true)
+    public long countUpcomingEvents() {
+        return eventRepository.countByStartTimeAfter(LocalDateTime.now());
+    }
+
+    // Get upcoming events (for students)
+    @Transactional(readOnly = true)
+    public Page<Event> getUpcomingEvents(Pageable pageable) {
+        return eventRepository.findByStartTimeAfter(LocalDateTime.now(), pageable);
+    }
+
     // Inner class for statistics
     public static class EventStatisticsDTO {
         private long totalEvents;

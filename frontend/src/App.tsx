@@ -1,16 +1,18 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { UserProvider } from './context/UserContext';
 import { AuthProvider } from './context/AuthContext';
 import { FacultyProvider } from './context/FacultyContext';
 import { AdminProvider } from './context/AdminContext';
+import { StudentProvider } from './context/StudentContext';
 import { ToastProvider } from './context/ToastContext';
 import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout';
 import FacultyLayout from './components/FacultyLayout';
+import StudentLayout from './components/StudentLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import FacultyRoute from './components/FacultyRoute';
+import StudentRoute from './components/StudentRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -26,6 +28,11 @@ import FacultyStudents from './pages/faculty/FacultyStudents';
 import FacultyEvents from './pages/faculty/FacultyEvents';
 import FacultyAttendance from './pages/faculty/FacultyAttendance';
 import FacultyAnalytics from './pages/faculty/FacultyAnalytics';
+import StudentDashboard from './pages/student/StudentDashboard';
+import StudentProgress from './pages/student/StudentProgress';
+import StudentEvents from './pages/student/StudentEvents';
+import StudentNotifications from './pages/student/StudentNotifications';
+import StudentLibrary from './pages/student/StudentLibrary';
 
 function App() {
   return (
@@ -34,7 +41,8 @@ function App() {
         <UserProvider>
           <FacultyProvider>
             <AdminProvider>
-        <Router>
+              <StudentProvider>
+                <Router>
           <Routes>
             {/* Public Routes - No Navbar */}
             <Route path="/login" element={
@@ -156,21 +164,59 @@ function App() {
                 </FacultyRoute>
               </FacultyLayout>
             } />
-            <Route path="/faculty/analytics" element={
-              <FacultyLayout>
-                <FacultyRoute>
-                  <FacultyAnalytics />
-                </FacultyRoute>
-              </FacultyLayout>
-            } />
-          </Routes>
-        </Router>
-            </AdminProvider>
-          </FacultyProvider>
-        </UserProvider>
-      </ToastProvider>
-    </AuthProvider>
-  );
-}
+                         <Route path="/faculty/analytics" element={
+                           <FacultyLayout>
+                             <FacultyRoute>
+                               <FacultyAnalytics />
+                             </FacultyRoute>
+                           </FacultyLayout>
+                         } />
+
+                         {/* Protected Student Routes */}
+                         <Route path="/student/dashboard" element={
+                           <StudentLayout>
+                             <StudentRoute>
+                               <StudentDashboard />
+                             </StudentRoute>
+                           </StudentLayout>
+                         } />
+                         <Route path="/student/progress" element={
+                           <StudentLayout>
+                             <StudentRoute>
+                               <StudentProgress />
+                             </StudentRoute>
+                           </StudentLayout>
+                         } />
+                         <Route path="/student/events" element={
+                           <StudentLayout>
+                             <StudentRoute>
+                               <StudentEvents />
+                             </StudentRoute>
+                           </StudentLayout>
+                         } />
+                         <Route path="/student/notifications" element={
+                           <StudentLayout>
+                             <StudentRoute>
+                               <StudentNotifications />
+                             </StudentRoute>
+                           </StudentLayout>
+                         } />
+                         <Route path="/student/library" element={
+                           <StudentLayout>
+                             <StudentRoute>
+                               <StudentLibrary />
+                             </StudentRoute>
+                           </StudentLayout>
+                         } />
+                       </Routes>
+                     </Router>
+                   </StudentProvider>
+                 </AdminProvider>
+               </FacultyProvider>
+             </UserProvider>
+           </ToastProvider>
+         </AuthProvider>
+       );
+     }
 
 export default App;

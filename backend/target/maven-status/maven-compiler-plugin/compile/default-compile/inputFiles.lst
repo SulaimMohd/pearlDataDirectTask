@@ -27,6 +27,7 @@
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/repository/AttendanceRepository.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/service/StudentService.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/dto/StudentAttendanceAnalyticsDTO.java
+/Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/controller/StudentController.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/controller/UserController.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/dto/LoginResponse.java
 /Users/sulaim/Desktop/PearlDataDirectTask/backend/src/main/java/com/pearldata/dto/LoginRequest.java

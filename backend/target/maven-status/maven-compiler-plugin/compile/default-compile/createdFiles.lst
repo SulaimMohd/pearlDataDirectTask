@@ -3,7 +3,6 @@ com/pearldata/security/CustomUserDetailsService.class
 com/pearldata/repository/EventRepository.class
 com/pearldata/entity/Event$EventType.class
 com/pearldata/dto/StudentResponseDTO.class
-com/pearldata/controller/AdminStudentController.class
 com/pearldata/controller/AuthController.class
 com/pearldata/controller/AdminEventController.class
 com/pearldata/controller/UserController.class
@@ -16,10 +15,7 @@ com/pearldata/FullstackAppApplication.class
 com/pearldata/repository/AttendanceRepository.class
 com/pearldata/entity/Attendance.class
 com/pearldata/repository/StudentRepository.class
-com/pearldata/service/StudentService.class
-com/pearldata/service/StudentService$StudentStatisticsDTO.class
 com/pearldata/service/EventService$EventStatisticsDTO.class
-com/pearldata/controller/FacultyController.class
 com/pearldata/entity/User$Role.class
 com/pearldata/entity/Student.class
 com/pearldata/repository/UserRepository.class

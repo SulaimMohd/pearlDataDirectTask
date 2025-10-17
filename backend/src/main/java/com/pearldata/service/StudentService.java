@@ -88,6 +88,7 @@ public class StudentService {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
     }
 
+
     // Get student by ID with attendance
     @Transactional(readOnly = true)
     public Optional<StudentResponseDTO> getStudentByIdWithAttendance(Long studentId) {
