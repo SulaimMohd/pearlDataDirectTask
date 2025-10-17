@@ -45,6 +45,9 @@ public class AttendanceService {
     @Autowired
     private SmsService smsService;
 
+    @Autowired
+    private WhatsAppService whatsAppService;
+
     // Mark attendance for multiple students
     public List<Attendance> markAttendance(MarkAttendanceDTO markAttendanceDTO, Long facultyId) {
         // Validate faculty
@@ -255,7 +258,7 @@ public class AttendanceService {
             message += " and event status updated to " + newEventStatus;
         }
 
-        // Send SMS notifications to students about attendance updates
+        // Send SMS and WhatsApp notifications to students about attendance updates
         sendAttendanceNotificationsToStudents(attendanceRecords, event);
 
         return new AttendanceMarkingResponseDTO(true, message, attendanceSummary, eventSummary, responseRecords);
@@ -586,8 +589,10 @@ public class AttendanceService {
             try {
                 logger.info("Starting SMS notifications for attendance updates for event: {}", event.getTitle());
                 
-                int successCount = 0;
-                int failureCount = 0;
+                int smsSuccessCount = 0;
+                int smsFailureCount = 0;
+                int whatsappSuccessCount = 0;
+                int whatsappFailureCount = 0;
                 
                 for (Attendance attendance : attendanceRecords) {
                     try {
@@ -622,7 +627,8 @@ public class AttendanceService {
                                 marksInfo = String.format("%.1f/%d", attendance.getMarksObtained(), attendance.getMaxMarks());
                             }
                             
-                            boolean sent = smsService.sendAttendanceNotification(
+                            // Send SMS notification
+                            boolean smsSent = smsService.sendAttendanceNotification(
                                 student.getName(),
                                 formattedPhone,
                                 event.getTitle(),
@@ -630,29 +636,50 @@ public class AttendanceService {
                                 marksInfo
                             );
                             
-                            if (sent) {
-                                successCount++;
+                            if (smsSent) {
+                                smsSuccessCount++;
                                 logger.debug("Attendance SMS sent successfully to student: {}", student.getName());
                             } else {
-                                failureCount++;
+                                smsFailureCount++;
                                 logger.warn("Failed to send attendance SMS to student: {}", student.getName());
                             }
+                            
+                            // Send WhatsApp notification (if enabled)
+                            if (whatsAppService.isWhatsAppEnabled()) {
+                                boolean whatsappSent = whatsAppService.sendAttendanceNotificationWhatsApp(
+                                    student.getName(),
+                                    formattedPhone,
+                                    event.getTitle(),
+                                    attendanceStatus,
+                                    marksInfo
+                                );
+                                
+                                if (whatsappSent) {
+                                    whatsappSuccessCount++;
+                                    logger.debug("Attendance WhatsApp sent successfully to student: {}", student.getName());
+                                } else {
+                                    whatsappFailureCount++;
+                                    logger.warn("Failed to send attendance WhatsApp to student: {}", student.getName());
+                                }
+                            }
                         } else {
-                            failureCount++;
+                            smsFailureCount++;
+                            whatsappFailureCount++;
                             logger.warn("Invalid phone number for student: {} - {}", student.getName(), student.getPhoneNumber());
                         }
                         
-                        // Add small delay to avoid rate limiting
-                        Thread.sleep(300);
+                        // Add delay to avoid rate limiting
+                        Thread.sleep(400);
                         
                     } catch (Exception e) {
-                        failureCount++;
-                        logger.error("Error sending attendance SMS to student {}: {}", attendance.getStudent().getName(), e.getMessage());
+                        smsFailureCount++;
+                        whatsappFailureCount++;
+                        logger.error("Error sending attendance notifications to student {}: {}", attendance.getStudent().getName(), e.getMessage());
                     }
                 }
                 
-                logger.info("Attendance SMS notification completed for event '{}'. Success: {}, Failed: {}", 
-                    event.getTitle(), successCount, failureCount);
+                logger.info("Attendance notifications completed for event '{}'. SMS - Success: {}, Failed: {} | WhatsApp - Success: {}, Failed: {}", 
+                    event.getTitle(), smsSuccessCount, smsFailureCount, whatsappSuccessCount, whatsappFailureCount);
                 
             } catch (Exception e) {
                 logger.error("Error in sendAttendanceNotificationsToStudents: {}", e.getMessage(), e);

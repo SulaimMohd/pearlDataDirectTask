@@ -6,9 +6,9 @@ spring:
     name: fullstack-app
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: 1111
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:1111}
     driver-class-name: org.postgresql.Driver
   
   jpa:
@@ -36,19 +36,19 @@ logging:
     org.springframework.web: DEBUG
 
 jwt:
-  secret: mySecretKeyForPearlDataApplication2024
-  expiration: 86400000
+  secret: ${JWT_SECRET:mySecretKeyForPearlDataApplication2024}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 # Twilio SMS & WhatsApp Configuration
 twilio:
   account:
-    sid: your_twilio_account_sid_here
+    sid: ${TWILIO_ACCOUNT_SID:your_twilio_account_sid_here}
   auth:
-    token: your_twilio_auth_token_here
+    token: ${TWILIO_AUTH_TOKEN:your_twilio_auth_token_here}
   phone:
-    number: +15074323599  # Twilio trial number (replace with your Twilio number)
+    number: ${TWILIO_PHONE_NUMBER:+15074323599}
   whatsapp:
-    enabled: true
+    enabled: ${TWILIO_WHATSAPP_ENABLED:true}
     sandbox:
-      from: whatsapp:+14155238886  # Twilio WhatsApp Sandbox number
-      to-prefix: whatsapp:+91  # Prefix for Indian numbers
+      from: ${TWILIO_WHATSAPP_FROM:whatsapp:+14155238886}
+      to-prefix: ${TWILIO_WHATSAPP_TO_PREFIX:whatsapp:+91}

@@ -40,6 +40,9 @@ public class EventService {
     @Autowired
     private SmsService smsService;
 
+    @Autowired
+    private WhatsAppService whatsAppService;
+
     // Create event
     public EventResponseDTO createEvent(CreateEventDTO createEventDTO, Long facultyId) {
         // Validate faculty
@@ -73,7 +76,7 @@ public class EventService {
 
         Event savedEvent = eventRepository.save(event);
         
-        // Send SMS notifications to all students asynchronously
+        // Send SMS and WhatsApp notifications to all students asynchronously
         sendEventNotificationsToStudents(savedEvent);
         
         return new EventResponseDTO(savedEvent);
@@ -406,8 +409,10 @@ public class EventService {
                 String eventDate = event.getStartTime().format(dateFormatter);
                 String eventTime = event.getStartTime().format(timeFormatter);
                 
-                int successCount = 0;
-                int failureCount = 0;
+                int smsSuccessCount = 0;
+                int smsFailureCount = 0;
+                int whatsappSuccessCount = 0;
+                int whatsappFailureCount = 0;
                 
                 for (Student student : students) {
                     try {
@@ -415,7 +420,8 @@ public class EventService {
                         if (smsService.isValidIndianPhoneNumber(student.getPhoneNumber())) {
                             String formattedPhone = smsService.formatPhoneNumber(student.getPhoneNumber());
                             
-                            boolean sent = smsService.sendEventNotification(
+                            // Send SMS notification
+                            boolean smsSent = smsService.sendEventNotification(
                                 student.getName(),
                                 formattedPhone,
                                 event.getTitle(),
@@ -423,29 +429,50 @@ public class EventService {
                                 eventTime
                             );
                             
-                            if (sent) {
-                                successCount++;
+                            if (smsSent) {
+                                smsSuccessCount++;
                                 logger.debug("SMS sent successfully to student: {}", student.getName());
                             } else {
-                                failureCount++;
+                                smsFailureCount++;
                                 logger.warn("Failed to send SMS to student: {}", student.getName());
                             }
+                            
+                            // Send WhatsApp notification (if enabled)
+                            if (whatsAppService.isWhatsAppEnabled()) {
+                                boolean whatsappSent = whatsAppService.sendEventNotificationWhatsApp(
+                                    student.getName(),
+                                    formattedPhone,
+                                    event.getTitle(),
+                                    eventDate,
+                                    eventTime
+                                );
+                                
+                                if (whatsappSent) {
+                                    whatsappSuccessCount++;
+                                    logger.debug("WhatsApp sent successfully to student: {}", student.getName());
+                                } else {
+                                    whatsappFailureCount++;
+                                    logger.warn("Failed to send WhatsApp to student: {}", student.getName());
+                                }
+                            }
                         } else {
-                            failureCount++;
+                            smsFailureCount++;
+                            whatsappFailureCount++;
                             logger.warn("Invalid phone number for student: {} - {}", student.getName(), student.getPhoneNumber());
                         }
                         
-                        // Add small delay to avoid rate limiting
-                        Thread.sleep(200);
+                        // Add delay to avoid rate limiting
+                        Thread.sleep(300);
                         
                     } catch (Exception e) {
-                        failureCount++;
-                        logger.error("Error sending SMS to student {}: {}", student.getName(), e.getMessage());
+                        smsFailureCount++;
+                        whatsappFailureCount++;
+                        logger.error("Error sending notifications to student {}: {}", student.getName(), e.getMessage());
                     }
                 }
                 
-                logger.info("SMS notification completed for event '{}'. Success: {}, Failed: {}", 
-                    event.getTitle(), successCount, failureCount);
+                logger.info("Notification completed for event '{}'. SMS - Success: {}, Failed: {} | WhatsApp - Success: {}, Failed: {}", 
+                    event.getTitle(), smsSuccessCount, smsFailureCount, whatsappSuccessCount, whatsappFailureCount);
                 
             } catch (Exception e) {
                 logger.error("Error in sendEventNotificationsToStudents: {}", e.getMessage(), e);
