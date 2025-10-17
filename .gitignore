@@ -1,4 +1,4 @@
-# Environment variables and secrets
+g# Environment variables and secrets
 .env
 .env.local
 .env.development
@@ -31,6 +31,7 @@ yarn-error.log*
 dist/
 build/
 target/
+backend/target/
 
 # Temporary files
 tmp/
